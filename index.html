@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proxy reverso</title>
+  <script>
+    // Celular → versión móvil (html.mobile): documento vertical sin reveal.js.
+    // Se puede forzar con ?mobile=1 o ?mobile=0. Las tablets usan la versión de escritorio.
+    (function () {
+      var q = new URLSearchParams(location.search).get('mobile');
+      var phone = /Mobi|iPhone|iPod/i.test(navigator.userAgent) || Math.min(screen.width, screen.height) < 600;
+      if (q === '1' || (q !== '0' && phone)) document.documentElement.classList.add('mobile');
+    })();
+  </script>
+  <link rel="stylesheet" href="vendor/reveal/reveal.css">
+  <link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============ 1. PORTADA ============ -->
+<section class="title-slide">
+  <svg class="bg"></svg>
+  <div class="hero">
+    <div class="kicker">Una sola puerta</div>
+    <h1>Proxy <span class="grad">reverso</span></h1>
+    <p class="sub">Como un load balancer, recibe todo. Pero no reparte por carga: mira cada pedido y lo manda al servicio que corresponde.</p>
+    <p class="keys"><kbd>→</kbd> avanzar · <kbd>S</kbd> notas del orador · <kbd>F</kbd> pantalla completa · <kbd>O</kbd> vista general</p>
+    <p class="keys-mobile">Deslizá hacia abajo para recorrerla. Las simulaciones se activan al llegar a cada una.</p>
+  </div>
+  <aside class="notes">
+    Bienvenida. Ya vimos el load balancer: está adelante y reparte pedidos entre copias iguales de un servidor.
+    Hoy vemos una pieza que también está adelante, pero que decide a dónde va cada pedido según qué pide: el proxy reverso. Al final, el API gateway como caso particular.
+    Pregunta para la clase: si una app tiene usuarios, órdenes y pagos como servicios separados, ¿cómo sabe el navegador a cuál pegarle?
+  </aside>
+</section>
+
+</div>
+</div>
+
+<script src="vendor/reveal/reveal.js"></script>
+<script src="vendor/reveal/plugin/notes.js"></script>
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/chart.umd.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/widgets.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
