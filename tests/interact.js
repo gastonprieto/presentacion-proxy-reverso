@@ -286,6 +286,50 @@ test('escena: risks apagar y segunda instancia', async page => {
   check(r.b === r.a, `e502 con dos instancias: ${r.a} → ${r.b}`);
 });
 
+test('escena: gateway 401 y 429', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.gateway, sec => {
+    const sim = sec._scene.sim;
+    const tog = f => { const b = sec.querySelector(`input[data-feature=${f}]`); b.checked = true; b.dispatchEvent(new Event('change')); };
+    tog('auth');
+    sim.fastForward(10);
+    const e401 = sim.window(60).e401;
+    tog('rateLimit');
+    sec.querySelector('[data-act=abuse]').click();
+    sim.fastForward(10);
+    const w = sim.window(60);
+    return { e401, e429: w.e429, clients: [...new Set(sim.log.filter(e => e.status === 429).map(e => e.client))] };
+  });
+  check(r.e401 > 0, `e401=${r.e401}`);
+  check(r.e429 > 0, `e429=${r.e429}`);
+  check(r.clients.length === 1 && r.clients[0] === 'movil', `429 de: ${r.clients}`);
+});
+
+test('estática: frase del gateway', async page => {
+  await open(page);
+  const t = await page.evaluate(i => window.__sec(i) ? window.__sec(i).textContent : '', SL.gateway);
+  check(t.includes('no todo proxy reverso es un API gateway'), 'falta la frase');
+});
+
+test('estática: resumen nombra Nginx y Kong', async page => {
+  await open(page);
+  const t = await page.evaluate(i => window.__sec(i) ? window.__sec(i).textContent : '', SL.summary);
+  check(t.includes('Nginx') && t.includes('Kong'), 'faltan Nginx / Kong');
+});
+
+test('notas: las 9 slides con pregunta', async page => {
+  await open(page);
+  const r = await page.evaluate(() => [...document.querySelectorAll('.reveal .slides > section')]
+    .map((s, i) => (s.querySelector('aside.notes') && s.querySelector('aside.notes').textContent.includes('?') ? 0 : i + 1)));
+  check(r.length === 9, `slides=${r.length}`);
+  check(!r.filter(Boolean).length, `sin pregunta: ${r.filter(Boolean)}`);
+});
+
+test('escena: portada anima en escritorio', async page => {
+  await open(page);
+  await page.waitForFunction(() => window.__sec(0)._scene, { timeout: 4000 });
+});
+
 /* ---------- runner ---------- */
 
 (async () => {

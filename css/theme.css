@@ -370,5 +370,15 @@ html.mobile .speed-ctl span { min-width: 34px; }
 .rule select { background: #0e1630; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: 14px var(--sans); }
 .btn:disabled { opacity: .45; cursor: default; }
 .toggles { display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: #cbd5e1; }
-.toggles label { display: flex; gap: 8px; align-items: baseline; cursor: pointer; }
-.toggles input { accent-color: var(--purple); transform: translateY(1px); }
+.toggles label { display: block; cursor: pointer; line-height: 1.4; }
+.toggles input { accent-color: var(--purple); margin: 0 6px 0 0; vertical-align: -2px; }
+.compare.three { grid-template-columns: repeat(3, 1fr); }
+.layer-card.lgw { border-top: 4px solid var(--pink); }
+.compare.three .layer-card ul { font-size: 18px; }
+.products { margin-top: 14px; font: 13px var(--mono); color: var(--muted); text-align: center; }
+.reveal section .compare:has(+ .products) { height: 500px; }
+html.mobile .reveal section .compare:has(+ .products) { height: auto; }
+html.mobile .compare.three { grid-template-columns: 1fr; }
+html.mobile .products { font-size: 12px; text-align: left; }
+.reveal section .compare.three { height: auto; }
+.compare.three .layer-card { min-height: 260px; }

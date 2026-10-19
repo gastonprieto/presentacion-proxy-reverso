@@ -21,7 +21,7 @@
 <div class="slides">
 
 <!-- ============ 1. PORTADA ============ -->
-<section class="title-slide">
+<section class="title-slide" data-scene="title">
   <svg class="bg"></svg>
   <div class="hero">
     <div class="kicker">Una sola puerta</div>
@@ -207,6 +207,75 @@
     Volver a prenderlo, agregar la segunda instancia y apagar una: el tráfico sigue por la otra.
     Remarcar el último punto: el proxy decide a dónde va cada pedido, no qué hace el negocio. Si empieza a tener reglas de negocio, se vuelve un monolito escondido.
     Pregunta para la clase: ¿qué otra pieza que vimos en la clase de load balancing tenía el mismo problema?
+  </aside>
+</section>
+
+<!-- ============ 8. DETALLE: API GATEWAY ============ -->
+<section data-scene="gateway">
+  <div class="kicker purple">Detalle</div>
+  <h2>API gateway: un proxy reverso para APIs</h2>
+  <div class="demo">
+    <div class="stage">
+      <svg class="sim"></svg>
+      <div class="legend"><span><i style="background:#f87171"></i>401 sin token</span><span><i style="background:#f87171"></i>429 se pasó del límite</span></div>
+    </div>
+    <div class="panel">
+      <p class="lead"><b>Todo API gateway es un proxy reverso; no todo proxy reverso es un API gateway.</b> El gateway suma lo que importa cuando del otro lado hay <b>clientes de una API</b>.</p>
+      <div class="toggles">
+        <label><input type="checkbox" data-feature="auth"> 🔑 <b>Autenticación</b>: sin token válido, 401 en la puerta</label>
+        <label><input type="checkbox" data-feature="rateLimit"> ⏱ <b>Límite por cliente</b>: más de 5 pedidos/s → 429</label>
+      </div>
+      <div class="actions"><button class="btn" data-act="abuse">😈 App móvil abusiva</button><button class="btn ghost" data-act="reset">↺</button></div>
+      <div class="rstats" data-fields="ok,e401,e429"></div>
+      <ul class="points">
+        <li class="fragment"><b>Agregación</b>: un pedido del cliente → varios servicios → una sola respuesta (espera al más lento).</li>
+        <li class="fragment"><b>BFF</b> (backend for frontend): un gateway por tipo de cliente, web y móvil.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    Prender la autenticación: los pedidos sin token rebotan con 401 sin llegar a ningún servicio.
+    Prender el límite y tocar "App móvil abusiva": solo ese cliente recibe 429; el navegador sigue normal. El límite es por cliente, no global.
+    Mencionar agregación y BFF como funciones típicas de gateway que un proxy genérico no tiene.
+    Pregunta para la clase: ¿dónde conviene validar el token, en cada servicio o una vez en la puerta? ¿Qué se gana y qué se pierde?
+  </aside>
+</section>
+
+<!-- ============ 9. RESUMEN ============ -->
+<section>
+  <div class="kicker">Resumen</div>
+  <h2>LB, proxy reverso y API gateway</h2>
+  <div class="compare three">
+    <div class="layer-card l4">
+      <h3>⚖️ Load balancer</h3>
+      <ul>
+        <li class="fragment"><b>Elige entre:</b> copias iguales.</li>
+        <li class="fragment"><b>Por:</b> carga.</li>
+        <li class="fragment"><b>Además:</b> health checks.</li>
+      </ul>
+    </div>
+    <div class="layer-card l7">
+      <h3>🔀 Proxy reverso</h3>
+      <ul>
+        <li class="fragment"><b>Elige entre:</b> servicios distintos.</li>
+        <li class="fragment"><b>Por:</b> ruta (path, host, header).</li>
+        <li class="fragment"><b>Además:</b> TLS, caché, compresión, ocultar el backend.</li>
+      </ul>
+    </div>
+    <div class="layer-card lgw">
+      <h3>🔑 API gateway</h3>
+      <ul>
+        <li class="fragment"><b>Elige entre:</b> servicios distintos.</li>
+        <li class="fragment"><b>Por:</b> ruta + quién es el cliente.</li>
+        <li class="fragment"><b>Además:</b> autenticación, límites por cliente, agregación, métricas de uso.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="products">En la práctica: Nginx · HAProxy · Envoy · Traefik · Caddy — gateways: Kong · AWS API Gateway · Azure API Management · Apigee</p>
+  <aside class="notes">
+    Cerrar con la progresión: el LB reparte carga entre iguales; el proxy reverso decide por ruta entre servicios distintos; el API gateway es un proxy reverso que además sabe quién es el cliente.
+    En la práctica se combinan y el mismo producto puede cumplir varios roles (Nginx o Envoy hacen de LB, de proxy y, con plugins, de gateway).
+    Pregunta para la clase: en la arquitectura que conocen, ¿qué pieza cumple cada rol?
   </aside>
 </section>
 

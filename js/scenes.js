@@ -136,5 +136,21 @@
     return life(sim);
   };
 
+  /* ---------- 1. portada: proxy decorativo de fondo ---------- */
+
+  S.title = slide => life(new RouteKit.RouteSim(slide.querySelector('svg.bg'), { mode: 'proxy', seed: 11, pops: false }));
+
+  /* ---------- 8. API gateway: autenticación y límite por cliente ---------- */
+
+  S.gateway = slide => {
+    const base = { mode: 'proxy', seed: 8, clients: [{ id: 'web', label: 'Navegador', icon: '💻', rate: 1 }, { id: 'movil', label: 'App móvil', icon: '📱', rate: 1 }], proxyLabel: 'API gateway' };
+    const sim = rsetup(slide, base);
+    toggles(slide, sim, { rateLimit: { perClient: 5 } });
+    const btn = slide.querySelector('[data-act=abuse]');
+    on(slide, '[data-act=abuse]', () => { sim.setClientRate('movil', 10); btn.disabled = true; });
+    on(slide, '[data-act=reset]', () => { sim.reset(base); btn.disabled = false; });
+    return life(sim);
+  };
+
   window.Scenes = S;
 })();
