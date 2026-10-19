@@ -9,7 +9,7 @@
   const { Clock, Speed, svgEl, cubic, curve, edge, pop, C, MOBILE, W, H } = window.NetKit;
   const PINK = '#f472b6';
 
-  const ROUTE_COLORS = { '/usuarios': '#60a5fa', '/ordenes': '#fb923c', '/pagos': '#2dd4bf', '/static': '#e2e8f0' };
+  const ROUTE_COLORS = { '/usuarios': '#60a5fa', '/ordenes': '#fb923c', '/pagos': '#2dd4bf', '/static': '#e2e8f0', '/ordenes/envios': '#a3e635' };
 
   function rng(seed) {
     let a = seed >>> 0;
@@ -104,7 +104,7 @@
     _build() {
       const v = this.v, n = this.o.clients.length;
       this.clients = this.o.clients.map((c, i) => {
-        const node = v ? { x: W * (i + 1) / (n + 1), y: 38, hw: 78, hh: 24 } : { x: 95, y: H * (i + 1) / (n + 1), hw: 78, hh: 30 };
+        const node = v ? { x: W * (i + 0.5) / n, y: 38, hw: Math.min(90, W / n / 2 - 8), hh: 24 } : { x: 95, y: H * (i + 1) / (n + 1), hw: 78, hh: 30 };
         Object.assign(node, { def: c, kind: 'client' });
         node.g = svgEl('g', { class: 'client', transform: `translate(${node.x},${node.y})` }, this.gNodes);
         node.g.style.setProperty('--c', '#7dd3fc');
@@ -386,9 +386,9 @@
       s.title.setAttribute('text-anchor', narrow ? 'middle' : 'start');
       s.sub.setAttribute('x', tx); s.sub.setAttribute('y', s.replicas > 1 ? -s.hh + 33 : 13);
       s.sub.setAttribute('text-anchor', narrow ? 'middle' : 'start');
-      s.title.textContent = narrow ? `${s.icon} ${s.label.length > 8 ? s.label.slice(0, 7) + '.' : s.label}` : `${s.icon} ${s.label}`;
+      s.title.textContent = narrow ? (s.label.length > 8 ? s.label.slice(0, 7) + '.' : s.label) : `${s.icon} ${s.label}`;
       const total = s.counts.reduce((a, b) => a + b, 0);
-      s.sub.textContent = !s.up ? 'caído' : `✓ ${total}${narrow ? '' : s.replicas > 1 ? ` · ${s.replicas} réplicas` : ''}`;
+      s.sub.textContent = !s.up ? 'caído' : narrow ? `${s.icon} ✓ ${total}` : `✓ ${total}${s.replicas > 1 ? ` · ${s.replicas} réplicas` : ''}`;
       // réplicas como cajitas, con su contador
       const sig = s.replicas + ':' + s.counts.join(',') + ':' + s.hw;
       if (s.reps._sig !== sig) {

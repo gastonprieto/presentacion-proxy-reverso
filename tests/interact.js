@@ -199,6 +199,46 @@ test('route: resultados independientes de la velocidad', async page => {
 // índices de slide (0 = portada)
 const SL = { lb2proxy: 1, routing: 2, door: 3, edge: 4, replicas: 5, risks: 6, gateway: 7, summary: 8 };
 
+test('escena: lb2proxy cambia de modo', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.lb2proxy, sec => {
+    const sim = sec._scene.sim;
+    const lb = { mode: sim.o.mode, n: sim.svcs.length };
+    sec.querySelector('.seg[data-group=mode] button[data-v=proxy]').click();
+    return { lb, mode: sim.o.mode, labels: sim.svcs.map(s => s.label) };
+  });
+  check(r.lb.mode === 'lb' && r.lb.n === 3, `inicio: ${JSON.stringify(r.lb)}`);
+  check(r.mode === 'proxy', `mode=${r.mode}`);
+  check(r.labels.length === 4 && new Set(r.labels).size === 4, `servicios=${r.labels}`);
+});
+
+test('escena: routing select cambia regla', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.routing, sec => {
+    const sim = sec._scene.sim;
+    sec.querySelector('[data-act=add]').click();
+    const sel = sec.querySelector('.rules-table select[data-path="/pagos"]');
+    sel.value = 'pagos2';
+    sel.dispatchEvent(new Event('change'));
+    sim.fastForward(10);
+    return { pagos2: sim.window(60).byService.pagos2, rule: sim.o.rules.find(x => x.match.path === '/pagos').to };
+  });
+  check(r.rule === 'pagos2', `regla=${r.rule}`);
+  check(r.pagos2 > 0, `pagos2=${r.pagos2}`);
+});
+
+test('escena: door separar', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.door, sec => {
+    const sim = sec._scene.sim;
+    sec.querySelector('[data-act=split]').click();
+    sim.fastForward(10);
+    return { envios: sim.window(60).byService.envios, host: sim.clients.map(c => c.sub.textContent) };
+  });
+  check(r.envios > 0, `envios=${r.envios}`);
+  check(r.host.every(h => h === 'tienda.com'), `dirección de los clientes: ${r.host}`);
+});
+
 /* ---------- runner ---------- */
 
 (async () => {

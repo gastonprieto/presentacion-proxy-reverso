@@ -172,5 +172,47 @@
     });
   }
 
-  window.Widgets = { stats, chart, histogram, strip, fmtLat };
+  /* ---------- widgets que leen un RouteSim (js/route.js) ---------- */
+
+  const RLABELS = { sent: 'Pedidos', ok: 'Respondidos', e401: '401 sin token', e404: '404 sin regla', e429: '429 límite', e502: '502 caído', cached: 'Desde caché', p95: 'Latencia p95' };
+
+  // Contadores; 'byService' se dibuja como mini barras por servicio
+  function rstats(el, sim, fields, win = 5) {
+    const nums = fields.filter(f => f !== 'byService');
+    el.innerHTML = (nums.length ? `<div class="stats">${nums.map(f => `<div class="stat s-${f}"><b data-f="${f}">0</b><span>${RLABELS[f]}</span></div>`).join('')}</div>` : '') +
+      (fields.includes('byService') ? '<div class="bysvc"></div>' : '');
+    const by = el.querySelector('.bysvc');
+    const update = () => {
+      const w = sim.window(win);
+      nums.forEach(f => { el.querySelector(`[data-f="${f}"]`).textContent = f === 'p95' ? fmtLat(w.p95) : w[f]; });
+      if (by) {
+        const max = Math.max(1, ...Object.values(w.byService));
+        by.innerHTML = sim.svcs.map(s => `<div class="bys-row"><span>${s.icon} ${s.label}</span><i><b style="width:${(w.byService[s.id] / max) * 100}%;background:${sim._svcColor(s)}"></b></i><em>${w.byService[s.id]}</em></div>`).join('');
+      }
+    };
+    throttle(sim, 0.25, update);
+    update();
+  }
+
+  // Tabla de reglas ruta → servicio; si es editable, cada fila tiene un <select>
+  function rules(el, sim, editable) {
+    const draw = () => {
+      el.innerHTML = sim.o.rules.map((r, i) => {
+        const color = RouteKit.ROUTE_COLORS[r.match.path] || '#94a3b8';
+        const target = editable
+          ? `<select data-i="${i}" data-path="${r.match.path}">${sim.svcs.map(s => `<option value="${s.id}"${s.id === r.to ? ' selected' : ''}>${s.icon} ${s.label}</option>`).join('')}<option value=""${r.to ? '' : ' selected'}>— sin regla —</option></select>`
+          : `<span class="to">${(sim.svcs.find(s => s.id === r.to) || { label: '—' }).label}</span>`;
+        return `<div class="rule"><code style="color:${color}">${r.match.path}*</code><span class="arrow">→</span>${target}</div>`;
+      }).join('');
+      el.querySelectorAll('select').forEach(sel => sel.addEventListener('change', () => {
+        sim.setRule(+sel.dataset.i, { match: { path: sel.dataset.path }, to: sel.value || null });
+        sel.blur();
+      }));
+    };
+    sim.on('reset', draw);
+    sim.on('rules', draw);
+    draw();
+  }
+
+  window.Widgets = { stats, chart, histogram, strip, fmtLat, rstats, rules };
 })();

@@ -357,3 +357,15 @@ html.mobile .speed-ctl span { min-width: 34px; }
 .routesim .svc.down .node-box { fill: #3a1018; stroke: var(--red); }
 .routesim .rep { fill: #0a1a2c; stroke: #2b5577; stroke-width: 1; }
 .routesim .t-rep { fill: #cbd5e1; font: 600 10px var(--mono); }
+.rstats { display: flex; flex-direction: column; gap: 8px; }
+.bysvc { display: flex; flex-direction: column; gap: 5px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.bys-row { display: grid; grid-template-columns: 110px 1fr 38px; gap: 8px; align-items: center; font-size: 13px; }
+.bys-row i { height: 9px; background: #1e293b; border-radius: 5px; overflow: hidden; }
+.bys-row i b { display: block; height: 100%; transition: width .25s; }
+.bys-row em { font: 700 13px var(--mono); font-style: normal; text-align: right; color: #cbd5e1; }
+.rules-table { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.rule { display: grid; grid-template-columns: 150px 20px 1fr; align-items: center; font-size: 14px; }
+.rule code { font: 700 14px var(--mono); }
+.rule .arrow { color: var(--muted); }
+.rule select { background: #0e1630; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: 14px var(--sans); }
+.btn:disabled { opacity: .45; cursor: default; }

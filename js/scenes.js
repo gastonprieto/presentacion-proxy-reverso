@@ -45,5 +45,52 @@
 
   const life = sim => ({ start: () => sim.start(), stop: () => sim.stop(), sim });
 
+  // Crea un RouteSim sobre <svg class="sim"> y conecta .rstats y .rules-table si existen
+  function rsetup(slide, opts, editable) {
+    const sim = new RouteKit.RouteSim(slide.querySelector('svg.sim'), opts);
+    const st = slide.querySelector('.rstats');
+    if (st) Widgets.rstats(st, sim, st.dataset.fields.split(','), +(st.dataset.window || 5));
+    const rt = slide.querySelector('.rules-table');
+    if (rt) Widgets.rules(rt, sim, editable);
+    return sim;
+  }
+
+  /* ---------- 2. del LB al proxy: mismo lugar, otro criterio ---------- */
+
+  S.lb2proxy = slide => {
+    const sim = rsetup(slide, { mode: 'lb', seed: 2 });
+    showMode(slide, 'lb');
+    seg(slide, 'mode', v => { showMode(slide, v); sim.reset({ mode: v, seed: 2 }); });
+    return life(sim);
+  };
+
+  /* ---------- 3. enrutamiento: tabla de reglas editable ---------- */
+
+  S.routing = slide => {
+    const base = { mode: 'proxy', seed: 3 };
+    const sim = rsetup(slide, base, true);
+    const add = slide.querySelector('[data-act=add]');
+    on(slide, '[data-act=add]', () => { sim.addService({ id: 'pagos2', label: 'Pagos v2', icon: '💳' }); add.disabled = true; });
+    on(slide, '[data-act=reset]', () => { sim.reset(base); add.disabled = false; });
+    return life(sim);
+  };
+
+  /* ---------- 4. una sola puerta: separar un servicio sin que el cliente se entere ---------- */
+
+  S.door = slide => {
+    const base = { mode: 'proxy', seed: 4, mix: { '/usuarios': 1, '/ordenes': 1, '/ordenes/envios': 1.5, '/pagos': 1 },
+      services: RouteKit.DEFAULT_SERVICES.filter(x => x.id !== 'web'),
+      rules: RouteKit.DEFAULT_RULES.filter(x => x.to !== 'web') };
+    const sim = rsetup(slide, base, false);
+    const btn = slide.querySelector('[data-act=split]');
+    on(slide, '[data-act=split]', () => {
+      sim.addService({ id: 'envios', label: 'Envíos', icon: '🚚' });
+      sim.insertRule(1, { match: { path: '/ordenes/envios' }, to: 'envios' });
+      btn.disabled = true;
+    });
+    on(slide, '[data-act=reset]', () => { sim.reset(base); btn.disabled = false; });
+    return life(sim);
+  };
+
   window.Scenes = S;
 })();

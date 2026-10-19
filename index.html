@@ -37,6 +37,92 @@
   </aside>
 </section>
 
+<!-- ============ 2. DEL LB AL PROXY ============ -->
+<section data-scene="lb2proxy">
+  <div class="kicker purple">Del LB al proxy</div>
+  <h2>Mismo lugar, otra pregunta</h2>
+  <div class="demo">
+    <div class="stage">
+      <svg class="sim"></svg>
+      <div class="legend"><span><i style="background:#60a5fa"></i>/usuarios</span><span><i style="background:#fb923c"></i>/ordenes</span><span><i style="background:#2dd4bf"></i>/pagos</span><span><i style="background:#e2e8f0"></i>/static</span></div>
+    </div>
+    <div class="panel">
+      <p class="lead">Los dos están adelante y reciben todo. La diferencia es <b>qué miran</b> para decidir a dónde va cada pedido.</p>
+      <div class="seg" data-group="mode">
+        <button data-v="lb" class="active">Load balancer</button>
+        <button data-v="proxy">Proxy reverso</button>
+      </div>
+      <p class="mode-text" data-mode="lb"><b>Elige entre iguales, por carga.</b> Las tres apps son copias: da lo mismo cuál atiende.</p>
+      <p class="mode-text" data-mode="proxy"><b>Elige entre distintos, por ruta.</b> Mira la URL y la manda al servicio que sabe responderla.</p>
+      <div class="rstats" data-fields="sent,ok,byService"></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Arrancar en "Load balancer": es el dibujo de la clase anterior, tres copias iguales y round robin.
+    Cambiar a "Proxy reverso": los servidores pasan a ser servicios distintos, y el color de cada pedido (su ruta) decide a dónde va.
+    Pregunta para la clase: ¿qué tiene que mirar el proxy del pedido para decidir? ¿Y el load balancer?
+  </aside>
+</section>
+
+<!-- ============ 3. ENRUTAMIENTO ============ -->
+<section data-scene="routing">
+  <div class="kicker">Enrutamiento</div>
+  <h2>Reglas: ruta → servicio</h2>
+  <div class="demo">
+    <div class="stage">
+      <svg class="sim"></svg>
+      <div class="legend"><span><i style="background:#60a5fa"></i>/usuarios</span><span><i style="background:#fb923c"></i>/ordenes</span><span><i style="background:#2dd4bf"></i>/pagos</span><span><i style="background:#e2e8f0"></i>/static</span></div>
+    </div>
+    <div class="panel">
+      <p class="lead">El proxy tiene una tabla de reglas. La primera que coincide con la ruta decide el servicio. <b>Cambiala en vivo.</b></p>
+      <div class="actions">
+        <button class="btn primary" data-act="add">＋ Pagos v2</button>
+        <button class="btn ghost" data-act="reset">↺</button>
+      </div>
+      <div class="box"><div class="label">Reglas del proxy</div><div class="rules-table"></div></div>
+      <ul class="points">
+        <li class="fragment">Sin regla para una ruta: <b>404</b> desde el proxy.</li>
+        <li class="fragment">También se puede enrutar por <b>host</b> (<code>api.</code> vs. <code>www.</code>) o por <b>header</b> (<code>X-Version: 2</code>).</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    Mostrar la tabla: cada fila es "si la ruta empieza con…, mandala a…".
+    Tocar "＋ Pagos v2" y elegirlo en la fila de /pagos: los pedidos verde agua empiezan a ir al servicio nuevo. Así se hace una migración sin que el cliente cambie nada.
+    Elegir "— sin regla —" en alguna fila para ver los 404.
+    Pregunta para la clase: ¿cómo usarían esto para probar una versión nueva con solo una parte del tráfico?
+  </aside>
+</section>
+
+<!-- ============ 4. UNA SOLA PUERTA ============ -->
+<section data-scene="door">
+  <div class="kicker green">Una sola puerta</div>
+  <h2>El cliente conoce una sola dirección</h2>
+  <div class="demo">
+    <div class="stage">
+      <svg class="sim"></svg>
+      <div class="hint">el cliente siempre le habla a <b>tienda.com</b></div>
+    </div>
+    <div class="panel">
+      <p class="lead">Atrás puede haber uno, cuatro o veinte servicios. El cliente no lo sabe: <b>solo conoce al proxy</b>.</p>
+      <div class="actions">
+        <button class="btn primary" data-act="split">✂ Separar Envíos de Órdenes</button>
+        <button class="btn ghost" data-act="reset">↺</button>
+      </div>
+      <div class="box"><div class="label">Reglas del proxy</div><div class="rules-table"></div></div>
+      <ul class="points">
+        <li class="fragment">Partir un servicio en dos es <b>agregar una regla</b>: el cliente no cambió nada.</li>
+        <li class="fragment">Los servicios <b>no quedan expuestos</b> a internet: solo el proxy.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    Al principio, /ordenes/envios lo atiende Órdenes (la regla /ordenes coincide por prefijo).
+    Tocar "Separar Envíos": aparece un servicio nuevo y una regla más específica antes de /ordenes. Los pedidos verde lima van ahora a Envíos y los clientes siguen pegándole a tienda.com.
+    Pregunta para la clase: sin proxy, ¿qué tendría que cambiar en la app móvil para hablar con un servicio nuevo?
+  </aside>
+</section>
+
 </div>
 </div>
 
