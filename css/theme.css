@@ -369,3 +369,6 @@ html.mobile .speed-ctl span { min-width: 34px; }
 .rule .arrow { color: var(--muted); }
 .rule select { background: #0e1630; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: 14px var(--sans); }
 .btn:disabled { opacity: .45; cursor: default; }
+.toggles { display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: #cbd5e1; }
+.toggles label { display: flex; gap: 8px; align-items: baseline; cursor: pointer; }
+.toggles input { accent-color: var(--purple); transform: translateY(1px); }

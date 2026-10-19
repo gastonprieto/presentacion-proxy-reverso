@@ -123,6 +123,93 @@
   </aside>
 </section>
 
+<!-- ============ 5. LO QUE SE HACE EN LA PUERTA ============ -->
+<section data-scene="edge">
+  <div class="kicker">En la puerta</div>
+  <h2>Lo que se resuelve una sola vez, adelante</h2>
+  <div class="demo">
+    <div class="stage">
+      <svg class="sim"></svg>
+      <div class="legend"><span><i style="background:#60a5fa"></i>/usuarios</span><span><i style="background:#fb923c"></i>/ordenes</span><span><i style="background:#2dd4bf"></i>/pagos</span><span><i style="background:#e2e8f0"></i>/static</span><span><i style="background:#f472b6"></i>caché</span></div>
+    </div>
+    <div class="panel">
+      <p class="lead">Como todo pasa por el proxy, hay tareas que conviene hacer <b>ahí</b> y no repetirlas en cada servicio.</p>
+      <div class="toggles">
+        <label><input type="checkbox" data-feature="tls"> 🔒 <b>TLS</b>: el certificado y el HTTPS viven en un solo lugar</label>
+        <label><input type="checkbox" data-feature="cache"> 💾 <b>Caché</b>: los archivos estáticos se responden desde el proxy</label>
+        <label><input type="checkbox" data-feature="compress"> 🗜 <b>Compresión</b>: gzip/brotli para todas las respuestas</label>
+      </div>
+      <div class="rstats" data-fields="cached,ok,byService"></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Prender la caché: los pedidos blancos (/static) se responden en rosa desde el proxy y la barra de Web deja de crecer. Es carga que el servicio no ve.
+    TLS y compresión no cambian el dibujo, pero son el mismo argumento: hacerlo una vez en la puerta, no en cada servicio.
+    Pregunta para la clase: ¿qué otras cosas tendría sentido resolver en la puerta para todos los servicios?
+  </aside>
+</section>
+
+<!-- ============ 6. PROXY + LB ============ -->
+<section data-scene="replicas">
+  <div class="kicker purple">Proxy + LB</div>
+  <h2>Primero la ruta, después la carga</h2>
+  <div class="demo">
+    <div class="stage">
+      <svg class="sim"></svg>
+      <div class="hint">cada cajita es una réplica, con los pedidos que atendió</div>
+    </div>
+    <div class="panel">
+      <p class="lead">El proxy elige el <b>servicio</b> por la ruta. Adentro de cada servicio hay varias <b>copias</b>, y entre ellas se balancea como en la clase anterior.</p>
+      <div class="actions">
+        <button class="btn primary" data-act="add">＋ Réplica de Órdenes</button>
+        <button class="btn" data-act="remove">－</button>
+        <button class="btn ghost" data-act="reset">↺</button>
+      </div>
+      <div class="rstats" data-fields="sent,ok,byService"></div>
+      <ul class="points">
+        <li class="fragment">Muchos proxies hacen las dos cosas: <b>enrutan y balancean</b>.</li>
+        <li class="fragment">Cada servicio escala por separado, según su propia carga.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    Mostrar que cada servicio tiene sus réplicas y que el reparto entre ellas es parejo (round robin).
+    Sumar réplicas de Órdenes: el proxy las incorpora y reparte entre todas.
+    Pregunta para la clase: si Órdenes recibe diez veces más tráfico que Usuarios, ¿cuántas réplicas le darían a cada uno?
+  </aside>
+</section>
+
+<!-- ============ 7. RIESGOS ============ -->
+<section data-scene="risks">
+  <div class="kicker red">Riesgos</div>
+  <h2>Si se cae la puerta, se cae todo</h2>
+  <div class="demo">
+    <div class="stage">
+      <svg class="sim"></svg>
+      <div class="hint">👆 clic en el proxy para apagarlo</div>
+    </div>
+    <div class="panel">
+      <p class="lead">Todo el tráfico pasa por el proxy: es un <b>punto único de falla</b>.</p>
+      <div class="actions">
+        <button class="btn primary" data-act="second">＋ Segunda instancia</button>
+        <button class="btn ghost" data-act="reset">↺</button>
+      </div>
+      <div class="rstats" data-fields="sent,ok,e502"></div>
+      <ul class="points">
+        <li class="fragment">Se mitiga con <b>varias instancias</b> del proxy (detrás de un LB o de DNS).</li>
+        <li class="fragment">Suma <b>un salto más</b> de latencia a cada pedido.</li>
+        <li class="fragment">Tentación peligrosa: meter <b>lógica de negocio</b> en el proxy.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    Clic en el proxy: todos los pedidos dan 502, aunque los servicios están perfectos.
+    Volver a prenderlo, agregar la segunda instancia y apagar una: el tráfico sigue por la otra.
+    Remarcar el último punto: el proxy decide a dónde va cada pedido, no qué hace el negocio. Si empieza a tener reglas de negocio, se vuelve un monolito escondido.
+    Pregunta para la clase: ¿qué otra pieza que vimos en la clase de load balancing tenía el mismo problema?
+  </aside>
+</section>
+
 </div>
 </div>
 

@@ -239,6 +239,53 @@ test('escena: door separar', async page => {
   check(r.host.every(h => h === 'tienda.com'), `dirección de los clientes: ${r.host}`);
 });
 
+test('escena: edge caché', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.edge, sec => {
+    const sim = sec._scene.sim;
+    const box = sec.querySelector('input[data-feature=cache]');
+    box.checked = true;
+    box.dispatchEvent(new Event('change'));
+    const web0 = sim.window(60).byService.web;
+    sim.fastForward(10);
+    const w = sim.window(60);
+    return { cache: sim.o.features.cache, web: w.byService.web - web0, cached: w.cached };
+  });
+  check(r.cache === true, 'caché no se prendió');
+  check(r.web === 0, `web recibió ${r.web} con caché`);
+  check(r.cached > 0, `cached=${r.cached}`);
+});
+
+test('escena: replicas ＋', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.replicas, sec => {
+    const sim = sec._scene.sim;
+    for (let i = 0; i < 2; i++) sec.querySelector('[data-act=add]').click();
+    sim.fastForward(20);
+    return sim.replicaCounts('ordenes');
+  });
+  check(r.length === 5, `réplicas=${r.length}`);
+  check(r.every(x => x > 0), `reparto=${r}`);
+});
+
+test('escena: risks apagar y segunda instancia', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.risks, sec => {
+    const sim = sec._scene.sim;
+    sim.instances[0].g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    sim.fastForward(5);
+    const a = sim.window(60).e502;
+    sim.setProxyUp(0, true);
+    sec.querySelector('[data-act=second]').click();
+    sim.instances[0].g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    sim.fastForward(5);
+    return { a, b: sim.window(60).e502, n: sim.instances.length, up0: sim.instances[0].up };
+  });
+  check(r.a > 0, `e502=${r.a}`);
+  check(r.n === 2 && r.up0 === false, `instancias=${r.n} up0=${r.up0}`);
+  check(r.b === r.a, `e502 con dos instancias: ${r.a} → ${r.b}`);
+});
+
 /* ---------- runner ---------- */
 
 (async () => {

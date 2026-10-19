@@ -92,5 +92,49 @@
     return life(sim);
   };
 
+  // Checkboxes <input data-feature="x"> → sim.setFeature
+  function toggles(slide, sim, values) {
+    slide.querySelectorAll('input[data-feature]').forEach(box => {
+      const f = box.dataset.feature;
+      box.checked = !!sim.o.features[f];
+      box.addEventListener('change', () => { sim.setFeature(f, box.checked ? (values && values[f]) || true : (f === 'rateLimit' ? null : false)); box.blur(); });
+    });
+    sim.on('reset', () => slide.querySelectorAll('input[data-feature]').forEach(box => { box.checked = !!sim.o.features[box.dataset.feature]; }));
+  }
+
+  /* ---------- 5. en la puerta: TLS, caché, compresión ---------- */
+
+  S.edge = slide => {
+    const sim = rsetup(slide, { mode: 'proxy', seed: 5, mix: { '/usuarios': 1, '/ordenes': 1, '/pagos': 1, '/static': 2 } });
+    toggles(slide, sim);
+    return life(sim);
+  };
+
+  /* ---------- 6. proxy + LB: réplicas dentro de cada servicio ---------- */
+
+  S.replicas = slide => {
+    const reps = { usuarios: 2, ordenes: 3, pagos: 2 };
+    const base = { mode: 'proxy', seed: 6, mix: { '/usuarios': 1, '/ordenes': 2, '/pagos': 1 },
+      services: RouteKit.DEFAULT_SERVICES.filter(x => x.id !== 'web').map(x => Object.assign({}, x, { replicas: reps[x.id] })),
+      rules: RouteKit.DEFAULT_RULES.filter(x => x.to !== 'web') };
+    const sim = rsetup(slide, base);
+    const n = () => sim.replicaCounts('ordenes').length;
+    on(slide, '[data-act=add]', () => sim.setReplicas('ordenes', n() + 1));
+    on(slide, '[data-act=remove]', () => sim.setReplicas('ordenes', n() - 1));
+    on(slide, '[data-act=reset]', () => sim.reset(base));
+    return life(sim);
+  };
+
+  /* ---------- 7. riesgos: punto único de falla ---------- */
+
+  S.risks = slide => {
+    const base = { mode: 'proxy', seed: 7, clickProxy: true };
+    const sim = rsetup(slide, base);
+    const btn = slide.querySelector('[data-act=second]');
+    on(slide, '[data-act=second]', () => { sim.setProxies(2); btn.disabled = true; });
+    on(slide, '[data-act=reset]', () => { sim.reset(base); btn.disabled = false; });
+    return life(sim);
+  };
+
   window.Scenes = S;
 })();
