@@ -347,3 +347,13 @@ html.mobile .speed-ctl button { font-size: 16px; padding: 5px 7px; }
 html.mobile .speed-ctl span { min-width: 34px; }
 
 [hidden] { display: none !important; }
+
+/* ---------- motor de ruteo (js/route.js) ---------- */
+.routesim .proxy .node-box { fill: #1c1641; stroke: var(--purple); }
+.routesim .proxy .inst.down .node-box { fill: #3a1018; stroke: var(--red); }
+.routesim .proxy .inst.down .t-lb { fill: var(--red); }
+.routesim .proxy .inst.clickable { cursor: pointer; }
+.routesim .proxy .inst.clickable:hover .node-box { stroke-width: 3.5; }
+.routesim .svc.down .node-box { fill: #3a1018; stroke: var(--red); }
+.routesim .rep { fill: #0a1a2c; stroke: #2b5577; stroke-width: 1; }
+.routesim .t-rep { fill: #cbd5e1; font: 600 10px var(--mono); }
