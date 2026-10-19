@@ -382,3 +382,4 @@ html.mobile .compare.three { grid-template-columns: 1fr; }
 html.mobile .products { font-size: 12px; text-align: left; }
 .reveal section .compare.three { height: auto; }
 .compare.three .layer-card { min-height: 260px; }
+html.mobile .rule select { font-size: 16px; padding: 6px; }

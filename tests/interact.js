@@ -195,6 +195,42 @@ test('route: resultados independientes de la velocidad', async page => {
   check(a.sent === b.sent && a.ok === b.ok, `0,25×=${JSON.stringify(a)} 1,5×=${JSON.stringify(b)}`);
 });
 
+test('route: quitar réplicas no resta pedidos', async page => {
+  await open(page);
+  const r = await engine(page, svg => {
+    const svcs = RouteKit.DEFAULT_SERVICES.map(x => Object.assign({}, x, x.id === 'ordenes' ? { replicas: 3 } : {}));
+    const s = new RouteKit.RouteSim(svg, { mode: 'proxy', seed: 1, services: svcs });
+    s.fastForward(10);
+    const a = s.window(60).byService.ordenes;
+    s.setReplicas('ordenes', 2);
+    return { a, b: s.window(60).byService.ordenes, reps: s.replicaCounts('ordenes').length };
+  });
+  check(r.reps === 2, `réplicas=${r.reps}`);
+  check(r.b >= r.a, `el total bajó: ${r.a} → ${r.b}`);
+});
+
+test('route: el LB no dice que round robin es por carga', async page => {
+  await open(page);
+  const t = await engine(page, svg => {
+    const s = new RouteKit.RouteSim(svg, { mode: 'lb', seed: 1 });
+    s._frame();
+    return s.instances[0].sub.textContent;
+  });
+  check(t === 'Round Robin · entre iguales', `texto=${t}`);
+});
+
+test('mobile: el select de reglas mide 16px o más', async page => {
+  await open(page, 0, true);
+  const px = await page.evaluate(async i => {
+    const sec = window.__sec(i);
+    sec.scrollIntoView();
+    for (let k = 0; k < 40 && !sec.querySelector('.rules-table select'); k++) await new Promise(r => setTimeout(r, 100));
+    const sel = sec.querySelector('.rules-table select');
+    return sel ? parseFloat(getComputedStyle(sel).fontSize) : -1;
+  }, SL.routing);
+  check(px >= 16, `font-size=${px}`);
+});
+
 /* ---------- escenas ---------- */
 // índices de slide (0 = portada)
 const SL = { lb2proxy: 1, routing: 2, door: 3, edge: 4, replicas: 5, risks: 6, gateway: 7, summary: 8 };

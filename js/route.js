@@ -151,7 +151,7 @@
     }
 
     _addSvc(def, fresh) {
-      const s = Object.assign({ replicas: 1, workTime: 0.5 }, def, { x: 0, y: 0, hw: 110, hh: 30, scale: fresh ? 0 : 1, n: 0, active: 0, up: true });
+      const s = Object.assign({ replicas: 1, workTime: 0.5 }, def, { x: 0, y: 0, hw: 110, hh: 30, scale: fresh ? 0 : 1, n: 0, total: 0, active: 0, up: true });
       s.counts = Array(s.replicas).fill(0);
       s.g = svgEl('g', { class: 'srv svc' }, this.gNodes);
       s.inner = svgEl('g', {}, s.g);
@@ -280,6 +280,7 @@
       if (!svc.up) { this.c.e502++; this._pop(svc, '502', C.err); this._end(req, 502, { to: svc.id }); return; }
       const r = svc.rr = ((svc.rr == null ? -1 : svc.rr) + 1) % svc.replicas;
       svc.counts[r] = (svc.counts[r] || 0) + 1;
+      svc.total++;
       svc.active++;
       const d = svc.workTime * (0.85 + 0.3 * this.rand());
       this.clock.after(d, () => {
@@ -336,7 +337,7 @@
     window(sec) {
       const t0 = this.now - sec;
       const byService = {};
-      this.svcs.forEach(s => { byService[s.id] = s.counts.reduce((a, b) => a + b, 0); });
+      this.svcs.forEach(s => { byService[s.id] = s.total; });
       return Object.assign({}, this.c, {
         inFlight: this.flying.size, byService,
         p95: quant(this.lat.filter(e => e[0] >= t0).map(e => e[1]), 0.95)
@@ -359,7 +360,7 @@
       const badges = [f.tls && '🔒 TLS', f.cache && '💾 caché', f.compress && '🗜 gzip', f.auth && '🔑 auth', f.rateLimit && '⏱ límite'].filter(Boolean);
       this.instances.forEach(inst => {
         inst.g.classList.toggle('down', !inst.up);
-        inst.sub.textContent = !inst.up ? 'caído' : this.o.mode === 'lb' ? 'Round Robin · por carga' : 'por ruta';
+        inst.sub.textContent = !inst.up ? 'caído' : this.o.mode === 'lb' ? 'Round Robin · entre iguales' : 'por ruta';
         inst.badges.textContent = this.instances.length === 1 ? badges.join(' · ') : '';
       });
       this.proxyG.classList.toggle('down', this.instances.every(x => !x.up));
@@ -387,7 +388,7 @@
       s.sub.setAttribute('x', tx); s.sub.setAttribute('y', s.replicas > 1 ? -s.hh + 33 : 13);
       s.sub.setAttribute('text-anchor', narrow ? 'middle' : 'start');
       s.title.textContent = narrow ? (s.label.length > 8 ? s.label.slice(0, 7) + '.' : s.label) : `${s.icon} ${s.label}`;
-      const total = s.counts.reduce((a, b) => a + b, 0);
+      const total = s.total;
       s.sub.textContent = !s.up ? 'caído' : narrow ? `${s.icon} ✓ ${total}` : `✓ ${total}${s.replicas > 1 ? ` · ${s.replicas} réplicas` : ''}`;
       // réplicas como cajitas, con su contador
       const sig = s.replicas + ':' + s.counts.join(',') + ':' + s.hw;
