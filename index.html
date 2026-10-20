@@ -82,6 +82,7 @@
       <div class="box"><div class="label">Reglas del proxy</div><div class="rules-table"></div></div>
       <ul class="points">
         <li class="fragment">Sin regla para una ruta: <b>404</b> desde el proxy.</li>
+        <li class="fragment">Regla hacia el servicio equivocado: el pedido llega, pero el servicio no conoce la ruta y el <b>404</b> lo da él.</li>
         <li class="fragment">También se puede enrutar por <b>host</b> (<code>api.</code> vs. <code>www.</code>) o por <b>header</b> (<code>X-Version: 2</code>).</li>
       </ul>
     </div>
@@ -89,7 +90,8 @@
   <aside class="notes">
     Mostrar la tabla: cada fila es "si la ruta empieza con…, mandala a…".
     Tocar "＋ Pagos v2" y elegirlo en la fila de /pagos: los pedidos verde agua empiezan a ir al servicio nuevo. Así se hace una migración sin que el cliente cambie nada.
-    Elegir "— sin regla —" en alguna fila para ver los 404.
+    Elegir "— sin regla —" en alguna fila para ver los 404: salen del proxy, el pedido no llega a ningún servicio.
+    Después apuntar una fila a un servicio que no corresponde (por ejemplo /usuarios → Pagos): el pedido viaja hasta Pagos y el 404 aparece sobre Pagos. El proxy no sabe qué rutas entiende cada servicio; solo sigue la regla.
     Pregunta para la clase: ¿cómo usarían esto para probar una versión nueva con solo una parte del tráfico?
   </aside>
 </section>

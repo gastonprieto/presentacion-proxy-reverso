@@ -70,7 +70,7 @@
     const base = { mode: 'proxy', seed: 3 };
     const sim = rsetup(slide, base, true);
     const add = slide.querySelector('[data-act=add]');
-    on(slide, '[data-act=add]', () => { sim.addService({ id: 'pagos2', label: 'Pagos v2', icon: '💳' }); add.disabled = true; });
+    on(slide, '[data-act=add]', () => { sim.addService({ id: 'pagos2', label: 'Pagos v2', icon: '💳', serves: ['/pagos'] }); add.disabled = true; });
     on(slide, '[data-act=reset]', () => { sim.reset(base); add.disabled = false; });
     return life(sim);
   };
@@ -84,7 +84,7 @@
     const sim = rsetup(slide, base, false);
     const btn = slide.querySelector('[data-act=split]');
     on(slide, '[data-act=split]', () => {
-      sim.addService({ id: 'envios', label: 'Envíos', icon: '🚚' });
+      sim.addService({ id: 'envios', label: 'Envíos', icon: '🚚', serves: ['/ordenes/envios'] });
       sim.insertRule(1, { match: { path: '/ordenes/envios' }, to: 'envios' });
       btn.disabled = true;
     });

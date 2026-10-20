@@ -213,6 +213,20 @@ test('route: sin token rebota a su cliente', async page => {
   check(r.inv, 'invariante');
 });
 
+test('route: regla al servicio equivocado da 404 del servicio', async page => {
+  await open(page);
+  const r = await engine(page, (svg, RINV) => {
+    const s = new RouteKit.RouteSim(svg, { mode: 'proxy', seed: 6 });
+    s.setRule(0, { match: { path: '/usuarios' }, to: 'pagos' });
+    s.fastForward(20);
+    const e = s.log.filter(x => x.status === 404);
+    return { n: e.length, fromPagos: e.every(x => x.to === 'pagos' && x.path === '/usuarios'), pagosOk: s.log.filter(x => x.status === 200 && x.path === '/pagos').length, inv: eval(RINV)(s.window(60)) };
+  }, RINV);
+  check(r.n > 0 && r.fromPagos, `404=${r.n} desde pagos=${r.fromPagos}`);
+  check(r.pagosOk > 0, `pagos sigue atendiendo /pagos: ${r.pagosOk}`);
+  check(r.inv, 'invariante');
+});
+
 test('route: réplicas round robin', async page => {
   await open(page);
   const c = await engine(page, (svg, RULES) => {

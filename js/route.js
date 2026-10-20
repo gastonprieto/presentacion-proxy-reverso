@@ -31,10 +31,10 @@
   }
 
   const DEFAULT_SERVICES = [
-    { id: 'usuarios', label: 'Usuarios', icon: '👤', replicas: 1, workTime: 0.5 },
-    { id: 'ordenes', label: 'Órdenes', icon: '🧾', replicas: 1, workTime: 0.5 },
-    { id: 'pagos', label: 'Pagos', icon: '💳', replicas: 1, workTime: 0.5 },
-    { id: 'web', label: 'Web', icon: '🖼', replicas: 1, workTime: 0.3 }
+    { id: 'usuarios', label: 'Usuarios', icon: '👤', replicas: 1, workTime: 0.5, serves: ['/usuarios'] },
+    { id: 'ordenes', label: 'Órdenes', icon: '🧾', replicas: 1, workTime: 0.5, serves: ['/ordenes'] },
+    { id: 'pagos', label: 'Pagos', icon: '💳', replicas: 1, workTime: 0.5, serves: ['/pagos'] },
+    { id: 'web', label: 'Web', icon: '🖼', replicas: 1, workTime: 0.3, serves: ['/static'] }
   ];
   const LB_SERVICES = [1, 2, 3].map(i => ({ id: `app${i}`, label: `App ${i}`, icon: '🖥', replicas: 1, workTime: 0.5 }));
   const DEFAULT_RULES = [
@@ -170,7 +170,7 @@
     }
 
     _addSvc(def, fresh) {
-      const s = Object.assign({ replicas: 1, workTime: 0.5 }, def, { x: 0, y: 0, hw: 110, hh: 30, scale: fresh ? 0 : 1, n: 0, total: 0, active: 0, up: true });
+      const s = Object.assign({ replicas: 1, workTime: 0.5 }, def, { x: 0, y: 0, hw: 110, hh: 30, scale: fresh ? 0 : 1, n: 0, total: 0, active: 0, up: true, e404: 0 });
       s.counts = Array(s.replicas).fill(0);
       s.g = svgEl('g', { class: 'srv svc' }, this.gNodes);
       s.inner = svgEl('g', {}, s.g);
@@ -346,6 +346,16 @@
         this._fly(svc, at, C.err, () => { this.c.e502++; this._pop(at, '502', C.err); this._end(req, 502, { to: svc.id }); }, this.o.travel * 0.6);
         return;
       }
+      if (svc.serves && !svc.serves.some(p => req.path.startsWith(p))) {
+        // la regla lo mandó a un servicio que no conoce esa ruta: el 404 lo da el servicio, no el proxy
+        svc.e404++;
+        this._pop(svc, '404', C.err);
+        const done = () => { this.c.e404++; this._end(req, 404, { to: svc.id }); };
+        if (!this.o.returns) { done(); return; }
+        const at = this.instances.find(x => x.up) || this.proxyBox;
+        this._fly(svc, at, C.err, () => this._respond(at, client, C.err, done), this.o.travel * 0.9);
+        return;
+      }
       const r = svc.rr = ((svc.rr == null ? -1 : svc.rr) + 1) % svc.replicas;
       svc.counts[r] = (svc.counts[r] || 0) + 1;
       svc.total++;
@@ -493,7 +503,8 @@
       s.sub.setAttribute('text-anchor', narrow ? 'middle' : 'start');
       s.title.textContent = narrow ? (s.label.length > 8 ? s.label.slice(0, 7) + '.' : s.label) : `${s.icon} ${s.label}`;
       const total = s.total;
-      s.sub.textContent = !s.up ? 'caído' : narrow ? `${s.icon} ✓ ${total}` : `✓ ${total}${s.replicas > 1 ? ` · ${s.replicas} réplicas` : ''}`;
+      const nf = s.e404 ? (narrow ? ` ✕${s.e404}` : ` · 404 ×${s.e404}`) : '';
+      s.sub.textContent = !s.up ? 'caído' : narrow ? `${s.icon} ✓ ${total}${nf}` : `✓ ${total}${s.replicas > 1 ? ` · ${s.replicas} réplicas` : ''}${nf}`;
       // réplicas como cajitas, con su contador
       const sig = s.replicas + ':' + s.counts.join(',') + ':' + s.hw;
       if (s.reps._sig !== sig) {
