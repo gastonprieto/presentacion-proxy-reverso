@@ -614,7 +614,7 @@
     }
 
     _atServer(req, s) {
-      if (!s.up) { s.conns--; this._fail(req, s, this.lb ? '502' : 'ERR'); return; }
+      if (!s.up) { s.conns--; this._connFail(req, s); return; }
       req.tServer = this.now;
       const c = req.client, mode = this.o.sessions;
 
@@ -711,10 +711,20 @@
     }
 
     _fail(req, at, code) {
-      this._pop(at, code, C.err);
+      if (code) this._pop(at, code, C.err);
       req.pk.setAttribute('fill', C.err);
       req.pk.style.opacity = 1;
       this._travel(req.pk, this._back(req, at), () => { req.pk.remove(); this._record(req, 'err'); });
+    }
+
+    // Quien llama a un nodo caído no recibe un código HTTP: falla la conexión. Con LB, el que no conecta es el LB,
+    // y es él quien le contesta 502 al cliente.
+    _connFail(req, s) {
+      this._pop(s, '✕ conexión', C.err);
+      if (!this.lb) { this._fail(req, s, null); return; }
+      req.pk.setAttribute('fill', C.err);
+      req.pk.style.opacity = 1;
+      this._move(req.pk, s, this.lb, () => this._fail(req, this.lb, '502'));
     }
 
     _pop(node, text, color) {
@@ -788,15 +798,14 @@
       if (s.up === up) return;
       s.up = up;
       if (!up) {
-        const code = this.lb ? '502' : 'ERR';
         [...s.inProc].forEach(req => {
           if (req.timer) this.clock.cancel(req.timer);
           req.aborted = true;
           s.active--; s.conns--;
-          this._fail(req, s, code);
+          this._connFail(req, s);
         });
         s.inProc.clear();
-        s.queue.splice(0).forEach(req => { s.conns--; this._fail(req, s, code); });
+        s.queue.splice(0).forEach(req => { s.conns--; this._connFail(req, s); });
         s.sessions.forEach(c => { if (c.session === s) c.session = LOST; });
         s.sessions.clear();
         gsap.fromTo(s.view.inner, { x: -8 }, { x: 0, duration: 0.6, ease: 'elastic.out(1, 0.3)' });

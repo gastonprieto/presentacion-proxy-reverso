@@ -194,7 +194,7 @@
         <button class="btn primary" data-act="second">＋ Instancia pasiva</button>
         <button class="btn ghost" data-act="reset">↺</button>
       </div>
-      <div class="rstats" data-fields="sent,ok,e502"></div>
+      <div class="rstats" data-fields="sent,ok,econn"></div>
       <ul class="points">
         <li class="fragment">Se mitiga con un esquema <b>activo/pasivo</b>: la pasiva queda en espera y toma el tráfico si la activa se cae (<b>failover</b>).</li>
         <li class="fragment">Suma <b>un salto más</b> de latencia a cada pedido.</li>
@@ -203,9 +203,9 @@
     </div>
   </div>
   <aside class="notes">
-    Clic en el proxy: todos los pedidos dan 502, aunque los servicios están perfectos.
+    Clic en el proxy: todos los pedidos fallan con error de conexión (no hay nadie del otro lado para contestar un código HTTP), aunque los servicios están perfectos.
     Volver a prenderlo y agregar la instancia pasiva: queda punteada, en espera, sin recibir pedidos; todo el tráfico sigue yendo a la activa.
-    Apagar la activa: la pasiva pasa a activa y atiende todo sin un solo 502. Al volver a prender la primera, retoma el rol de activa.
+    Apagar la activa: la pasiva pasa a activa y atiende todo sin un solo error de conexión. Al volver a prender la primera, retoma el rol de activa.
     Contar que el traspaso en la vida real suele hacerse con una IP compartida que se mueve de una máquina a otra (por ejemplo keepalived) o cambiando el DNS. La pasiva no aporta capacidad mientras espera: es el precio de la disponibilidad.
     Remarcar el último punto: el proxy decide a dónde va cada pedido, no qué hace el negocio. Si empieza a tener reglas de negocio, se vuelve un monolito escondido.
     Pregunta para la clase: ¿qué otra pieza que vimos en la clase de load balancing tenía el mismo problema?

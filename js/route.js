@@ -1,6 +1,6 @@
 /* Motor de ruteo para las slides: clientes → proxy reverso (o LB) → servicios (con réplicas).
    Modos: 'lb' (reparte entre copias iguales, round robin) y 'proxy' (elige el servicio por la ruta).
-   En la puerta, en este orden: proxy caído → 502 · sin token → 401 · límite por cliente → 429 ·
+   En la puerta, en este orden: proxy caído → error de conexión · sin token → 401 · límite por cliente → 429 ·
    caché de /static → respuesta desde el proxy · sin regla → 404 · si no, al servicio de la regla.
    Usa el Clock y la geometría de NetKit. Expone window.RouteKit = { RouteSim, rng, ROUTE_COLORS, DEFAULT_SERVICES }. */
 (function () {
@@ -90,7 +90,7 @@
       this.gPk = svgEl('g', {}, this.svg);
       this.gTop = svgEl('g', {}, this.svg);
       this.links = [];
-      this.c = { sent: 0, ok: 0, e401: 0, e404: 0, e429: 0, e502: 0, cached: 0 };
+      this.c = { sent: 0, ok: 0, e401: 0, e404: 0, e429: 0, e502: 0, econn: 0, cached: 0 };
       this.log = []; this.lat = []; this.flying = new Set(); this.seq = 0; this.rr = 0;
       this.hits = {};
       this._build();
@@ -251,7 +251,7 @@
       const f = this.o.features;
       const inst = this.instances.find(x => x.up);
       const at = inst || this.proxyBox;
-      if (!inst) { this.c.e502++; this._pop(this.proxyBox, '502', C.err); this._end(req, 502); return; }
+      if (!inst) { this.c.econn++; this._pop(this.proxyBox, '✕ conexión', C.err); this._end(req, 'conn'); return; }
       if (f.auth && !req.token) { this.c.e401++; this._pop(at, '401', C.err); this._end(req, 401); return; }
       if (f.rateLimit) {
         const h = (this.hits[req.client] = (this.hits[req.client] || []).filter(t => t > this.now - 1));
@@ -277,7 +277,13 @@
     }
 
     _atService(req, svc) {
-      if (!svc.up) { this.c.e502++; this._pop(svc, '502', C.err); this._end(req, 502, { to: svc.id }); return; }
+      if (!svc.up) {
+        // el proxy no logra conectar con el servicio caído y le contesta 502 al cliente
+        const at = this.instances.find(x => x.up) || this.proxyBox;
+        this._pop(svc, '✕ conexión', C.err);
+        this._fly(svc, at, C.err, () => { this.c.e502++; this._pop(at, '502', C.err); this._end(req, 502, { to: svc.id }); }, this.o.travel * 0.6);
+        return;
+      }
       const r = svc.rr = ((svc.rr == null ? -1 : svc.rr) + 1) % svc.replicas;
       svc.counts[r] = (svc.counts[r] || 0) + 1;
       svc.total++;

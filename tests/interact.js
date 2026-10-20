@@ -52,7 +52,7 @@ test('base: carga sin errores de consola', async (page, errors) => {
 
 /* ---------- motor RouteKit ---------- */
 
-const RINV = `w => w.sent === w.ok + w.e401 + w.e404 + w.e429 + w.e502 + w.cached + w.inFlight`;
+const RINV = `w => w.sent === w.ok + w.e401 + w.e404 + w.e429 + w.e502 + w.econn + w.cached + w.inFlight`;
 const RULES = `[
   { match: { path: '/usuarios' }, to: 'usuarios' },
   { match: { path: '/ordenes' }, to: 'ordenes' },
@@ -152,9 +152,23 @@ test('route: instancias de proxy', async page => {
     const b = s.window(60);
     return { ok0, a, b };
   }, RULES);
-  check(r.a.e502 > 0, `e502 con el proxy caído=${r.a.e502}`);
+  check(r.a.econn > 0 && r.a.e502 === 0, `proxy caído: econn=${r.a.econn} e502=${r.a.e502}`);
   check(r.a.ok <= r.ok0 + 4, `siguió respondiendo con el proxy caído: ${r.ok0} → ${r.a.ok}`);
-  check(r.b.e502 === r.a.e502, `e502 con dos instancias: ${r.a.e502} → ${r.b.e502}`);
+  check(r.b.econn === r.a.econn, `econn con dos instancias: ${r.a.econn} → ${r.b.econn}`);
+});
+
+test('route: servicio caído da 502 del proxy, no error de conexión al cliente', async page => {
+  await open(page);
+  const r = await engine(page, (svg, RULES, RINV) => {
+    const s = new RouteKit.RouteSim(svg, { mode: 'proxy', seed: 2, rules: eval(RULES) });
+    s.svcs.find(x => x.id === 'pagos').up = false;
+    s.fastForward(20);
+    const w = s.window(60);
+    return { w, inv: eval(RINV)(w), pagos502: s.log.filter(e => e.to === 'pagos' && e.status === 502).length };
+  }, RULES, RINV);
+  check(r.w.e502 > 0 && r.w.econn === 0, `e502=${r.w.e502} econn=${r.w.econn}`);
+  check(r.pagos502 === r.w.e502, `502 sólo de pagos: ${r.pagos502}/${r.w.e502}`);
+  check(r.inv, `invariante: ${JSON.stringify(r.w)}`);
 });
 
 test('route: réplicas round robin', async page => {
@@ -310,18 +324,18 @@ test('escena: risks apagar y segunda instancia', async page => {
     const sim = sec._scene.sim;
     sim.instances[0].g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     sim.fastForward(5);
-    const a = sim.window(60).e502;
+    const a = sim.window(60).econn;
     sim.setProxyUp(0, true);
     sec.querySelector('[data-act=second]').click();
     sim.fastForward(1);
     const pas = sim.instances[1].g.classList.contains('passive') && !sim.instances[0].g.classList.contains('passive');
     sim.instances[0].g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     sim.fastForward(5);
-    return { a, pas, b: sim.window(60).e502, n: sim.instances.length, up0: sim.instances[0].up, act1: !sim.instances[1].g.classList.contains('passive') };
+    return { a, pas, b: sim.window(60).econn, n: sim.instances.length, up0: sim.instances[0].up, act1: !sim.instances[1].g.classList.contains('passive') };
   });
-  check(r.a > 0, `e502=${r.a}`);
+  check(r.a > 0, `econn=${r.a}`);
   check(r.n === 2 && r.up0 === false, `instancias=${r.n} up0=${r.up0}`);
-  check(r.b === r.a, `e502 con dos instancias: ${r.a} → ${r.b}`);
+  check(r.b === r.a, `econn con dos instancias: ${r.a} → ${r.b}`);
   check(r.pas && r.act1, `activo/pasivo: pasiva=${r.pas} toma el rol=${r.act1}`);
 });
 
