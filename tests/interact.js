@@ -386,13 +386,34 @@ test('escena: gateway medidor por cliente', async page => {
   const r = await evalScene(page, SL.gateway, sec => {
     const sim = sec._scene.sim;
     const b = sec.querySelector('input[data-feature=rateLimit]'); b.checked = true; b.dispatchEvent(new Event('change'));
-    sec.querySelector('[data-act=abuse]').click();
+    sec.querySelector('.seg[data-group=abuse] button[data-v=flood]').click();
     sim.fastForward(4);
     const [web, movil] = sim.clients;
     return { webOver: web.g.classList.contains('over'), movilOver: movil.g.classList.contains('over'), abuse: movil.g.classList.contains('abuse'), sub: movil.sub.textContent };
   });
   check(r.movilOver && r.abuse && !r.webOver, JSON.stringify(r));
   check(/^\d+\/5 por seg$/.test(r.sub), `medidor=${r.sub}`);
+});
+
+test('escena: gateway tipos de abuso', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.gateway, sec => {
+    const sim = sec._scene.sim;
+    const tog = f => { const b = sec.querySelector(`input[data-feature=${f}]`); b.checked = true; b.dispatchEvent(new Event('change')); };
+    const pick = v => sec.querySelector(`.seg[data-group=abuse] button[data-v=${v}]`).click();
+    const by = (st, t0) => sim.log.filter(e => e.status === st && e.t >= t0 && e.client === 'movil').length;
+    tog('auth');
+    pick('notoken'); let t0 = sim.now; sim.fastForward(10);
+    const nt = { e401: by(401, t0), ok: by(200, t0 + 2), shown: !sec.querySelector('[data-mode=notoken]').hidden };
+    pick('scan'); t0 = sim.now; sim.fastForward(10);
+    const sc = { e404: by(404, t0), web404: sim.log.filter(e => e.status === 404 && e.client === 'web').length };
+    sec.querySelector('[data-act=reset]').click();
+    const rs = { active: sec.querySelector('.seg[data-group=abuse] .active').dataset.v, beh: sim.o.clients[1].behavior || 'normal' };
+    return { nt, sc, rs };
+  });
+  check(r.nt.e401 > 0 && r.nt.ok === 0 && r.nt.shown, `sin token: ${JSON.stringify(r.nt)}`);
+  check(r.sc.e404 > 0 && r.sc.web404 === 0, `escanea: ${JSON.stringify(r.sc)}`);
+  check(r.rs.active === 'normal' && r.rs.beh === 'normal', `reset: ${JSON.stringify(r.rs)}`);
 });
 
 test('escena: gateway 401 y 429', async page => {
@@ -404,7 +425,7 @@ test('escena: gateway 401 y 429', async page => {
     sim.fastForward(10);
     const e401 = sim.window(60).e401;
     tog('rateLimit');
-    sec.querySelector('[data-act=abuse]').click();
+    sec.querySelector('.seg[data-group=abuse] button[data-v=flood]').click();
     sim.fastForward(10);
     const w = sim.window(60);
     return { e401, e429: w.e429, clients: [...new Set(sim.log.filter(e => e.status === 429).map(e => e.client))] };

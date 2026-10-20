@@ -12,6 +12,9 @@
   const ORANGE = '#fb923c';
   const CLIENT_COLOR = { web: '#7dd3fc', movil: '#facc15' };
   const ABUSE_RATE = 5;
+  const FLOOD_RATE = 10;
+  const SCAN_PATHS = ['/admin', '/.env', '/wp-login.php', '/api/v0/debug'];
+  const VIOLET = '#c084fc';
   const KB = { api: 4, static: 40, gzip: 0.3 };
 
   const ROUTE_COLORS = { '/usuarios': '#60a5fa', '/ordenes': '#fb923c', '/pagos': '#2dd4bf', '/static': '#e2e8f0', '/ordenes/envios': '#a3e635' };
@@ -226,6 +229,18 @@
       this._schedule(c);
     }
 
+    // Qué hace un cliente: 'normal' · 'flood' (muchos pedidos por segundo) · 'notoken' (nunca manda token) ·
+    // 'scan' (prueba rutas que no existen)
+    setClientBehavior(id, kind) {
+      const c = this.o.clients.find(x => x.id === id);
+      if (!c) return;
+      if (c.baseRate == null) c.baseRate = c.rate;
+      c.behavior = kind;
+      c.rate = kind === 'flood' ? FLOOD_RATE : c.baseRate;
+      c.abuse = kind !== 'normal';
+      this._schedule(c);
+    }
+
     _pickPath() {
       const entries = Object.entries(this.o.mix).filter(e => e[1] > 0);
       const total = entries.reduce((a, e) => a + e[1], 0);
@@ -236,8 +251,8 @@
 
     _arrive(c) {
       const node = this.clients[this.o.clients.indexOf(c)];
-      const path = this._pickPath();
-      const req = { id: ++this.seq, client: c.id, path, token: this.rand() >= this.o.noTokenRatio };
+      const path = c.behavior === 'scan' ? SCAN_PATHS[Math.floor(this.rand() * SCAN_PATHS.length)] : this._pickPath();
+      const req = { id: ++this.seq, client: c.id, path, token: c.behavior !== 'notoken' && this.rand() >= this.o.noTokenRatio };
       this.c.sent++;
       this.flying.add(req);
       const look = { hollow: this.o.colorBy === 'client' && !req.token, enc: this.o.features.tls };
@@ -319,7 +334,7 @@
         const rule = this.o.rules.find(r => r.match.path && req.path.startsWith(r.match.path));
         svc = rule && this.svcs.find(s => s.id === rule.to);
       }
-      if (!svc) { this._reject(req, client, at, 'e404', 404, '404', C.err); return; }
+      if (!svc) { this._reject(req, client, at, 'e404', 404, this.o.colorBy === 'client' ? '404 sin regla' : '404', this.o.colorBy === 'client' ? VIOLET : C.err); return; }
       this._fly(at, svc, this._reqColor(req), () => this._atService(req, svc, client), this.o.travel * 0.9);
     }
 

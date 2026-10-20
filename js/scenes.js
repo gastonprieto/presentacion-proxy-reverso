@@ -146,9 +146,13 @@
     const base = { mode: 'proxy', seed: 8, clients: [{ id: 'web', label: 'Navegador', icon: '💻', rate: 1 }, { id: 'movil', label: 'App móvil', icon: '📱', rate: 1 }], proxyLabel: 'API gateway', returns: true, colorBy: 'client' };
     const sim = rsetup(slide, base);
     toggles(slide, sim, { rateLimit: { perClient: 5 } });
-    const btn = slide.querySelector('[data-act=abuse]');
-    on(slide, '[data-act=abuse]', () => { sim.setClientRate('movil', 10); btn.disabled = true; });
-    on(slide, '[data-act=reset]', () => { sim.reset(base); btn.disabled = false; });
+    const pick = v => {
+      slide.querySelectorAll('.seg[data-group=abuse] button').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+      showMode(slide, v);
+    };
+    pick('normal');
+    seg(slide, 'abuse', v => { sim.setClientBehavior('movil', v); showMode(slide, v); });
+    on(slide, '[data-act=reset]', () => { sim.reset(base); pick('normal'); });
     return life(sim);
   };
 

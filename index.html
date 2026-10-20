@@ -221,16 +221,20 @@
   <div class="demo">
     <div class="stage">
       <svg class="sim"></svg>
-      <div class="legend"><span><i style="background:#7dd3fc"></i>Navegador</span><span><i style="background:#facc15"></i>App móvil</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px #cbd5e1"></i>sin token</span><span><i style="background:#4ade80"></i>respuesta</span><span><i style="background:#f87171"></i>401</span><span><i style="background:#fb923c"></i>429</span></div>
+      <div class="legend"><span><i style="background:#7dd3fc"></i>Navegador</span><span><i style="background:#facc15"></i>App móvil</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px #cbd5e1"></i>sin token</span><span><i style="background:#4ade80"></i>respuesta</span><span><i style="background:#f87171"></i>401</span><span><i style="background:#fb923c"></i>429</span><span><i style="background:#c084fc"></i>404</span></div>
     </div>
     <div class="panel">
-      <p class="lead"><b>Todo API gateway es un proxy reverso; no todo proxy reverso es un API gateway.</b> El gateway suma lo que importa cuando del otro lado hay <b>clientes de una API</b>.</p>
+      <p class="lead"><b>Todo API gateway es un proxy reverso; no todo proxy reverso es un API gateway.</b> Suma lo que importa con <b>clientes de una API</b>.</p>
       <div class="toggles">
-        <label><input type="checkbox" data-feature="auth"> 🔑 <b>Autenticación</b>: sin token válido, 401 en la puerta</label>
-        <label><input type="checkbox" data-feature="rateLimit"> ⏱ <b>Límite por cliente</b>: más de 5 pedidos/s → 429</label>
+        <label><input type="checkbox" data-feature="auth"> 🔑 <b>Autenticación</b>: sin token → 401</label>
+        <label><input type="checkbox" data-feature="rateLimit"> ⏱ <b>Límite por cliente</b>: más de 5/s → 429</label>
       </div>
-      <div class="actions"><button class="btn" data-act="abuse">😈 App móvil abusiva</button><button class="btn ghost" data-act="reset">↺</button></div>
-      <div class="rstats" data-fields="ok,e401,e429"></div>
+      <div class="actions"><div class="seg tight" data-group="abuse" aria-label="Qué hace la App móvil"><button data-v="normal" class="active">Normal</button><button data-v="flood">Inunda</button><button data-v="notoken">Sin token</button><button data-v="scan">Escanea</button></div><button class="btn ghost" data-act="reset">↺</button></div>
+      <p class="mode-text" data-mode="normal"><b>App móvil:</b> se porta bien, 1 pedido/s y casi siempre con token.</p>
+      <p class="mode-text" data-mode="flood" hidden><b>Inunda:</b> 10 pedidos/s, el doble del límite → <b>429</b>.</p>
+      <p class="mode-text" data-mode="notoken" hidden><b>Sin token:</b> pega a la API sin autenticarse → <b>401</b>.</p>
+      <p class="mode-text" data-mode="scan" hidden><b>Escanea:</b> prueba <code>/admin</code>, <code>/.env</code>… rutas que no existen → <b>404</b> en la puerta.</p>
+      <div class="rstats four" data-fields="ok,e401,e429,e404"></div>
       <ul class="points">
         <li class="fragment"><b>Agregación</b>: un pedido del cliente → varios servicios → una sola respuesta (espera al más lento).</li>
         <li class="fragment"><b>BFF</b> (backend for frontend): un gateway por tipo de cliente, web y móvil.</li>
@@ -240,7 +244,9 @@
   <aside class="notes">
     Cada cliente tiene su color; los puntos huecos son pedidos sin token. Las respuestas vuelven en verde a quien pidió.
     Prender la autenticación: los huecos rebotan en el gateway con 401 (rojo) y vuelven a su cliente, sin llegar a ningún servicio.
-    Prender el límite: cada cliente muestra cuántos pedidos hizo en el último segundo contra el límite (x/5). Tocar "App móvil abusiva": pasa a 10 por segundo, su caja se pone naranja y solo a ella le vuelven 429 (naranja); el navegador sigue normal. El límite es por cliente, no global.
+    Prender el límite: cada cliente muestra cuántos pedidos hizo en el último segundo contra el límite (x/5). Elegir "Inunda": la App móvil pasa a 10 por segundo, su caja se pone naranja y solo a ella le vuelven 429 (naranja); el navegador sigue normal. El límite es por cliente, no global.
+    "Sin token": todos sus pedidos van huecos; con la autenticación prendida rebotan con 401. "Escanea": prueba rutas como /admin o /.env que ninguna regla conoce, y el gateway las corta con 404 (violeta) sin molestar a ningún servicio.
+    Cada abuso lo frena una defensa distinta: límite, autenticación, reglas de ruteo.
     Mencionar agregación y BFF como funciones típicas de gateway que un proxy genérico no tiene.
     Pregunta para la clase: ¿dónde conviene validar el token, en cada servicio o una vez en la puerta? ¿Qué se gana y qué se pierde?
   </aside>

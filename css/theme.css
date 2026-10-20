@@ -120,6 +120,8 @@ html, body { background: var(--bg); }
   font: 600 14px var(--sans); color: var(--muted); background: transparent; border: 0; border-radius: 8px;
   padding: 7px 12px; cursor: pointer;
 }
+.seg.tight button { font-size: 13px; padding: 6px 8px; white-space: nowrap; }
+.rstats.four .stats { grid-template-columns: repeat(4, 1fr); }
 .seg button.active { background: #22305c; color: #fff; box-shadow: 0 0 0 1px #4458a0 inset; }
 
 .slider-row { display: flex; align-items: center; gap: 10px; }
