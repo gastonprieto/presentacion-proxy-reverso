@@ -186,17 +186,17 @@
   <div class="demo">
     <div class="stage">
       <svg class="sim"></svg>
-      <div class="hint">👆 clic en el proxy para apagarlo</div>
+      <div class="hint">👆 clic en un proxy para apagarlo</div>
     </div>
     <div class="panel">
       <p class="lead">Todo el tráfico pasa por el proxy: es un <b>punto único de falla</b>.</p>
       <div class="actions">
-        <button class="btn primary" data-act="second">＋ Segunda instancia</button>
+        <button class="btn primary" data-act="second">＋ Instancia pasiva</button>
         <button class="btn ghost" data-act="reset">↺</button>
       </div>
       <div class="rstats" data-fields="sent,ok,e502"></div>
       <ul class="points">
-        <li class="fragment">Se mitiga con <b>varias instancias</b> del proxy (detrás de un LB o de DNS).</li>
+        <li class="fragment">Se mitiga con un esquema <b>activo/pasivo</b>: la pasiva queda en espera y toma el tráfico si la activa se cae (<b>failover</b>).</li>
         <li class="fragment">Suma <b>un salto más</b> de latencia a cada pedido.</li>
         <li class="fragment">Tentación peligrosa: meter <b>lógica de negocio</b> en el proxy.</li>
       </ul>
@@ -204,7 +204,9 @@
   </div>
   <aside class="notes">
     Clic en el proxy: todos los pedidos dan 502, aunque los servicios están perfectos.
-    Volver a prenderlo, agregar la segunda instancia y apagar una: el tráfico sigue por la otra.
+    Volver a prenderlo y agregar la instancia pasiva: queda punteada, en espera, sin recibir pedidos; todo el tráfico sigue yendo a la activa.
+    Apagar la activa: la pasiva pasa a activa y atiende todo sin un solo 502. Al volver a prender la primera, retoma el rol de activa.
+    Contar que el traspaso en la vida real suele hacerse con una IP compartida que se mueve de una máquina a otra (por ejemplo keepalived) o cambiando el DNS. La pasiva no aporta capacidad mientras espera: es el precio de la disponibilidad.
     Remarcar el último punto: el proxy decide a dónde va cada pedido, no qué hace el negocio. Si empieza a tener reglas de negocio, se vuelve un monolito escondido.
     Pregunta para la clase: ¿qué otra pieza que vimos en la clase de load balancing tenía el mismo problema?
   </aside>

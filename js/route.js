@@ -224,7 +224,7 @@
       this.c.sent++;
       this.flying.add(req);
       const color = this.o.mode === 'lb' ? C.req : ROUTE_COLORS[path] || C.req;
-      this._fly(node, this.proxyBox, color, () => this._atProxy(req, node));
+      this._fly(node, this.instances.find(x => x.up) || this.proxyBox, color, () => this._atProxy(req, node));
     }
 
     _fly(a, b, color, done, dur) {
@@ -358,9 +358,11 @@
       for (const l of this.links) l.el.setAttribute('d', curve(edge(l.a, l.b, this.v), edge(l.b, l.a, this.v), this.v));
       const f = this.o.features;
       const badges = [f.tls && '🔒 TLS', f.cache && '💾 caché', f.compress && '🗜 gzip', f.auth && '🔑 auth', f.rateLimit && '⏱ límite'].filter(Boolean);
+      const active = this.instances.find(x => x.up), ha = this.instances.length > 1;
       this.instances.forEach(inst => {
         inst.g.classList.toggle('down', !inst.up);
-        inst.sub.textContent = !inst.up ? 'caído' : this.o.mode === 'lb' ? 'Round Robin · entre iguales' : 'por ruta';
+        inst.g.classList.toggle('passive', ha && inst.up && inst !== active);
+        inst.sub.textContent = !inst.up ? 'caído' : this.o.mode === 'lb' ? 'Round Robin · entre iguales' : ha ? (inst === active ? 'activo' : this.v ? 'pasivo' : 'pasivo · en espera') : 'por ruta';
         inst.badges.textContent = this.instances.length === 1 ? badges.join(' · ') : '';
       });
       this.proxyG.classList.toggle('down', this.instances.every(x => !x.up));

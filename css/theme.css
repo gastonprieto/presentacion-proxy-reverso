@@ -352,6 +352,8 @@ html.mobile .speed-ctl span { min-width: 34px; }
 .routesim .proxy .node-box { fill: #1c1641; stroke: var(--purple); }
 .routesim .proxy .inst.down .node-box { fill: #3a1018; stroke: var(--red); }
 .routesim .proxy .inst.down .t-lb { fill: var(--red); }
+.routesim .proxy .inst.passive .node-box { fill: #120f26; stroke-dasharray: 6 5; }
+.routesim .proxy .inst.passive text { opacity: .6; }
 .routesim .proxy .inst.clickable { cursor: pointer; }
 .routesim .proxy .inst.clickable:hover .node-box { stroke-width: 3.5; }
 .routesim .svc.down .node-box { fill: #3a1018; stroke: var(--red); }

@@ -313,13 +313,16 @@ test('escena: risks apagar y segunda instancia', async page => {
     const a = sim.window(60).e502;
     sim.setProxyUp(0, true);
     sec.querySelector('[data-act=second]').click();
+    sim.fastForward(1);
+    const pas = sim.instances[1].g.classList.contains('passive') && !sim.instances[0].g.classList.contains('passive');
     sim.instances[0].g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     sim.fastForward(5);
-    return { a, b: sim.window(60).e502, n: sim.instances.length, up0: sim.instances[0].up };
+    return { a, pas, b: sim.window(60).e502, n: sim.instances.length, up0: sim.instances[0].up, act1: !sim.instances[1].g.classList.contains('passive') };
   });
   check(r.a > 0, `e502=${r.a}`);
   check(r.n === 2 && r.up0 === false, `instancias=${r.n} up0=${r.up0}`);
   check(r.b === r.a, `e502 con dos instancias: ${r.a} → ${r.b}`);
+  check(r.pas && r.act1, `activo/pasivo: pasiva=${r.pas} toma el rol=${r.act1}`);
 });
 
 test('escena: gateway 401 y 429', async page => {
