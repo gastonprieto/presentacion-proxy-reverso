@@ -1,5 +1,6 @@
 /* Motor de ruteo para las slides: clientes → proxy reverso (o LB) → servicios (con réplicas).
    Modos: 'lb' (reparte entre copias iguales, round robin) y 'proxy' (elige el servicio por la ruta).
+   Con `returns` las respuestas (y los rechazos) vuelven al cliente; `colorBy: 'client'` pinta por cliente y deja huecos los pedidos sin token.
    En la puerta, en este orden: proxy caído → error de conexión · sin token → 401 · límite por cliente → 429 ·
    caché de /static → respuesta desde el proxy · sin regla → 404 · si no, al servicio de la regla.
    Usa el Clock y la geometría de NetKit. Expone window.RouteKit = { RouteSim, rng, ROUTE_COLORS, DEFAULT_SERVICES }. */
@@ -8,6 +9,10 @@
 
   const { Clock, Speed, svgEl, cubic, curve, edge, pop, C, MOBILE, W, H } = window.NetKit;
   const PINK = '#f472b6';
+  const ORANGE = '#fb923c';
+  const CLIENT_COLOR = { web: '#7dd3fc', movil: '#facc15' };
+  const ABUSE_RATE = 5;
+  const KB = { api: 4, static: 40, gzip: 0.3 };
 
   const ROUTE_COLORS = { '/usuarios': '#60a5fa', '/ordenes': '#fb923c', '/pagos': '#2dd4bf', '/static': '#e2e8f0', '/ordenes/envios': '#a3e635' };
 
@@ -42,7 +47,8 @@
     mix: { '/usuarios': 1, '/ordenes': 1, '/pagos': 1, '/static': 1 },
     services: null, rules: null,
     features: { cache: false, tls: false, compress: false, auth: false, rateLimit: null },
-    clickProxy: false, clickServices: false, pops: true, proxyLabel: 'Proxy reverso'
+    clickProxy: false, clickServices: false, pops: true, proxyLabel: 'Proxy reverso',
+    returns: false, colorBy: 'route', scheme: false
   };
 
   const clone = x => JSON.parse(JSON.stringify(x));
@@ -92,7 +98,7 @@
       this.links = [];
       this.c = { sent: 0, ok: 0, e401: 0, e404: 0, e429: 0, e502: 0, econn: 0, cached: 0 };
       this.log = []; this.lat = []; this.flying = new Set(); this.seq = 0; this.rr = 0;
-      this.hits = {};
+      this.hits = {}; this.tries = {};
       this._build();
       this.o.clients.forEach(c => this._schedule(c));
       this._frame();
@@ -109,7 +115,7 @@
         node.g = svgEl('g', { class: 'client', transform: `translate(${node.x},${node.y})` }, this.gNodes);
         node.g.style.setProperty('--c', '#7dd3fc');
         svgEl('rect', { class: 'node-box', x: -node.hw, y: -node.hh, width: node.hw * 2, height: node.hh * 2, rx: 10 }, node.g);
-        svgEl('text', { x: 0, y: -3, class: 't-title small', 'text-anchor': 'middle' }, node.g).textContent = `${c.icon} ${c.label}`;
+        node.title = svgEl('text', { x: 0, y: -3, class: 't-title small', 'text-anchor': 'middle' }, node.g);
         node.sub = svgEl('text', { x: 0, y: 13, class: 't-sub', 'text-anchor': 'middle' }, node.g);
         node.sub.textContent = this.o.host;
         return node;
@@ -121,7 +127,17 @@
       this.svcs = [];
       this.o.services.forEach(s => this._addSvc(s, false));
       this._layoutSvcs(false);
-      this.clients.forEach(c => this._link(c, this.proxyBox));
+      this.clientLinks = this.clients.map(c => this._link(c, this.proxyBox));
+      this._buildSegLabels();
+    }
+
+    // Etiquetas de tramo: adelante (clientes ↔ proxy) y atrás (proxy → servicios)
+    _buildSegLabels() {
+      const v = this.v;
+      const front = v ? { x: 8, y: 84, a: 'start' } : { x: 218, y: 132, a: 'middle' };
+      const back = v ? { x: 8, y: 232, a: 'start' } : { x: 532, y: 132, a: 'middle' };
+      const mk = (p, dy) => svgEl('text', { x: p.x, y: p.y + dy, class: 't-seg', 'text-anchor': p.a }, this.gTop);
+      this.seg = { front: mk(front, 0), front2: mk(front, 16), back: mk(back, 0) };
     }
 
     _buildProxies() {
@@ -206,6 +222,7 @@
       const c = this.o.clients.find(x => x.id === id);
       if (!c) return;
       c.rate = r;
+      c.abuse = r > ABUSE_RATE;
       this._schedule(c);
     }
 
@@ -223,13 +240,21 @@
       const req = { id: ++this.seq, client: c.id, path, token: this.rand() >= this.o.noTokenRatio };
       this.c.sent++;
       this.flying.add(req);
-      const color = this.o.mode === 'lb' ? C.req : ROUTE_COLORS[path] || C.req;
-      this._fly(node, this.instances.find(x => x.up) || this.proxyBox, color, () => this._atProxy(req, node));
+      const look = { hollow: this.o.colorBy === 'client' && !req.token, enc: this.o.features.tls };
+      this._fly(node, this.instances.find(x => x.up) || this.proxyBox, this._reqColor(req), () => this._atProxy(req, node), null, look);
     }
 
-    _fly(a, b, color, done, dur) {
-      const gen = this.gen;
-      const el = svgEl('circle', { r: 6, fill: color, class: 'pk' }, this.gPk);
+    _reqColor(req) {
+      if (this.o.colorBy === 'client') return CLIENT_COLOR[req.client] || C.req;
+      return this.o.mode === 'lb' ? C.req : ROUTE_COLORS[req.path] || C.req;
+    }
+
+    // look: { r, hollow (sin token: sólo borde), enc (cifrado: anillo blanco) }
+    _fly(a, b, color, done, dur, look) {
+      const gen = this.gen, lk = look || {};
+      const el = svgEl('circle', { r: lk.r || 6, fill: lk.hollow ? 'none' : color, class: 'pk' }, this.gPk);
+      if (lk.hollow) { el.setAttribute('stroke', color); el.setAttribute('stroke-width', 2.5); el.classList.add('notoken'); }
+      else if (lk.enc) el.classList.add('enc');
       const d = dur || this.o.travel;
       this.clock.animate(d, p => {
         const P = cubic(edge(a, b, this.v), edge(b, a, this.v), p, this.v);
@@ -247,22 +272,45 @@
       if (this.log.length > 3000) this.log.splice(0, 1000);
     }
 
+    // Rechazo en la puerta: con `returns`, el punto vuelve a su cliente y recién ahí se cuenta
+    _reject(req, client, at, key, status, label, color) {
+      this._pop(at, label, color);
+      const done = () => { this.c[key]++; this._end(req, status); };
+      if (this.o.returns) this._fly(at, client, color, done, this.o.travel * 0.8, { enc: this.o.features.tls });
+      else done();
+    }
+
+    // Respuesta del proxy al cliente: chica si va comprimida, con anillo si va cifrada
+    _respond(at, client, color, done) {
+      const f = this.o.features;
+      if (this.o.returns) this._fly(at, client, color, done, this.o.travel * 0.8, { r: f.compress ? 3 : 6, enc: f.tls });
+      else done();
+    }
+
+    _bytes(req) {
+      return (req.path.startsWith('/static') ? KB.static : KB.api) * (this.o.features.compress ? KB.gzip : 1);
+    }
+
     _atProxy(req, client) {
       const f = this.o.features;
       const inst = this.instances.find(x => x.up);
       const at = inst || this.proxyBox;
       if (!inst) { this.c.econn++; this._pop(this.proxyBox, '✕ conexión', C.err); this._end(req, 'conn'); return; }
-      if (f.auth && !req.token) { this.c.e401++; this._pop(at, '401', C.err); this._end(req, 401); return; }
+      (this.tries[req.client] = this.tries[req.client] || []).push(this.now);
+      if (f.auth && !req.token) { this._reject(req, client, at, 'e401', 401, '401 sin token', C.err); return; }
       if (f.rateLimit) {
         const h = (this.hits[req.client] = (this.hits[req.client] || []).filter(t => t > this.now - 1));
-        if (h.length >= f.rateLimit.perClient) { this.c.e429++; this._pop(at, '429', C.err); this._end(req, 429); return; }
+        if (h.length >= f.rateLimit.perClient) { this._reject(req, client, at, 'e429', 429, '429 límite', ORANGE); return; }
         h.push(this.now);
       }
       if (f.cache && req.path.startsWith('/static')) {
-        this.c.cached++;
         this._pop(at, 'HIT', PINK);
-        this._end(req, 200, { cached: true });
-        this._fly(at, client, PINK, () => {}, this.o.travel * 0.8);
+        if (this.o.returns) this._respond(at, client, PINK, () => { this.c.cached++; this._end(req, 200, { cached: true, bytes: this._bytes(req) }); });
+        else {
+          this.c.cached++;
+          this._end(req, 200, { cached: true, bytes: this._bytes(req) });
+          this._fly(at, client, PINK, () => {}, this.o.travel * 0.8);
+        }
         return;
       }
       let svc;
@@ -271,12 +319,11 @@
         const rule = this.o.rules.find(r => r.match.path && req.path.startsWith(r.match.path));
         svc = rule && this.svcs.find(s => s.id === rule.to);
       }
-      if (!svc) { this.c.e404++; this._pop(at, '404', C.err); this._end(req, 404); return; }
-      const color = this.o.mode === 'lb' ? C.req : ROUTE_COLORS[req.path] || C.req;
-      this._fly(at, svc, color, () => this._atService(req, svc), this.o.travel * 0.9);
+      if (!svc) { this._reject(req, client, at, 'e404', 404, '404', C.err); return; }
+      this._fly(at, svc, this._reqColor(req), () => this._atService(req, svc, client), this.o.travel * 0.9);
     }
 
-    _atService(req, svc) {
+    _atService(req, svc, client) {
       if (!svc.up) {
         // el proxy no logra conectar con el servicio caído y le contesta 502 al cliente
         const at = this.instances.find(x => x.up) || this.proxyBox;
@@ -292,10 +339,12 @@
       this.clock.after(d, () => {
         svc.active--;
         svc.n++;
-        this.c.ok++;
         this.lat.push([this.now, d]);
         this._pop(svc, '✔', C.ok);
-        this._end(req, 200, { to: svc.id });
+        const done = () => { this.c.ok++; this._end(req, 200, { to: svc.id, bytes: this._bytes(req) }); };
+        if (!this.o.returns) { done(); return; }
+        const back = () => { const at = this.instances.find(x => x.up) || this.proxyBox; this._respond(at, client, C.ok, done); };
+        this._fly(svc, this.instances.find(x => x.up) || this.proxyBox, C.ok, back, this.o.travel * 0.9);
       });
     }
 
@@ -344,8 +393,10 @@
       const t0 = this.now - sec;
       const byService = {};
       this.svcs.forEach(s => { byService[s.id] = s.total; });
+      let bytes = 0;
+      for (let i = this.log.length - 1; i >= 0 && this.log[i].t >= t0; i--) bytes += this.log[i].bytes || 0;
       return Object.assign({}, this.c, {
-        inFlight: this.flying.size, byService,
+        inFlight: this.flying.size, byService, kbps: Math.round(bytes / sec),
         p95: quant(this.lat.filter(e => e[0] >= t0).map(e => e[1]), 0.95)
       });
     }
@@ -372,8 +423,38 @@
         inst.badges.textContent = this.instances.length === 1 ? badges.join(' · ') : '';
       });
       this.proxyG.classList.toggle('down', this.instances.every(x => !x.up));
+      this._drawClients();
       this.svcs.forEach(s => this._drawSvc(s));
       this.emit('tick', this.now);
+    }
+
+    _drawClients() {
+      const f = this.o.features, lim = f.rateLimit && f.rateLimit.perClient;
+      this.clients.forEach(n => {
+        const c = n.def;
+        n.title.textContent = `${c.abuse ? '😈' : c.icon} ${c.label}`;
+        n.g.classList.toggle('abuse', !!c.abuse);
+        if (this.o.colorBy === 'client') n.g.style.setProperty('--c', CLIENT_COLOR[c.id] || C.req);
+        let over = false;
+        if (lim) {
+          const t = (this.tries[c.id] = (this.tries[c.id] || []).filter(x => x > this.now - 1)).length;
+          over = t > lim;
+          n.sub.textContent = `${t}/${lim} por seg`;
+        } else n.sub.textContent = this.o.scheme ? `${f.tls ? 'https' : 'http'}://${this.o.host}` : this.o.host;
+        n.g.classList.toggle('over', over);
+      });
+      this.clientLinks.forEach(l => l.el.classList.toggle('tls', !!f.tls));
+      const sg = this.seg;
+      if (this.o.scheme) {
+        sg.front.textContent = f.tls ? '🔒 HTTPS' : '👁 texto plano';
+        sg.front.classList.toggle('ok', !!f.tls);
+        sg.front.classList.toggle('bad', !f.tls);
+        sg.back.textContent = f.tls ? 'HTTP interno' : '';
+      }
+      const gz = f.compress && this.o.returns ? '🗜 gzip' : '';
+      // en celular no hay alto entre los clientes y el proxy: una sola línea
+      if (this.v && gz) sg.front.textContent = [sg.front.textContent, gz].filter(Boolean).join(' · ');
+      sg.front2.textContent = this.v ? '' : gz;
     }
 
     _svcColor(s) {

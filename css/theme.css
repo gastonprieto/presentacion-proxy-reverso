@@ -357,6 +357,14 @@ html.mobile .speed-ctl span { min-width: 34px; }
 .routesim .proxy .inst.clickable { cursor: pointer; }
 .routesim .proxy .inst.clickable:hover .node-box { stroke-width: 3.5; }
 .routesim .svc.down .node-box { fill: #3a1018; stroke: var(--red); }
+.routesim .pk.enc { stroke: #fff; stroke-width: 2.5; }
+.routesim .link.tls { stroke: #2f7a4f; }
+.routesim .client.over .node-box { stroke: var(--orange); fill: #3a2410; }
+.routesim .client.over .t-sub { fill: var(--orange); font-weight: 700; }
+.routesim .client.abuse .node-box { stroke: var(--red); stroke-width: 3; }
+.routesim .t-seg { fill: var(--muted); font: 600 12.5px var(--mono); }
+.routesim .t-seg.ok { fill: var(--green); }
+.routesim .t-seg.bad { fill: var(--orange); }
 .routesim .rep { fill: #0a1a2c; stroke: #2b5577; stroke-width: 1; }
 .routesim .t-rep { fill: #cbd5e1; font: 600 10px var(--mono); }
 .rstats { display: flex; flex-direction: column; gap: 8px; }

@@ -171,6 +171,48 @@ test('route: servicio caído da 502 del proxy, no error de conexión al cliente'
   check(r.inv, `invariante: ${JSON.stringify(r.w)}`);
 });
 
+test('route: returns lleva la respuesta al cliente', async page => {
+  await open(page);
+  const r = await engine(page, (svg, RINV) => {
+    const s = new RouteKit.RouteSim(svg, { mode: 'proxy', seed: 3, returns: true });
+    s.fastForward(10);
+    const w = s.window(60);
+    s.setClientRate('web', 0); s.setClientRate('movil', 0);
+    s.fastForward(5);
+    const w2 = s.window(60);
+    return { ok: w.ok, inv: eval(RINV)(w), inv2: eval(RINV)(w2), left: w2.inFlight };
+  }, RINV);
+  check(r.ok > 0 && r.inv && r.inv2, `ok=${r.ok} invariante=${r.inv}/${r.inv2}`);
+  check(r.left === 0, `quedaron en vuelo: ${r.left}`);
+});
+
+test('route: compresión baja KB/s', async page => {
+  await open(page);
+  const r = await engine(page, () => {
+    const run = compress => {
+      const s = new RouteKit.RouteSim(svg2(), { mode: 'proxy', seed: 4, returns: true, features: { compress } });
+      s.fastForward(12);
+      return s.window(5).kbps;
+    };
+    function svg2() { const e = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); document.body.appendChild(e); return e; }
+    return { plain: run(false), gz: run(true) };
+  });
+  check(r.plain > 0 && r.gz < r.plain * 0.5, `KB/s sin=${r.plain} con=${r.gz}`);
+});
+
+test('route: sin token rebota a su cliente', async page => {
+  await open(page);
+  const r = await engine(page, (svg, RINV) => {
+    const s = new RouteKit.RouteSim(svg, { mode: 'proxy', seed: 5, returns: true, colorBy: 'client', features: { auth: true } });
+    s.fastForward(15);
+    const e401 = s.log.filter(e => e.status === 401);
+    return { n: e401.length, tokens: e401.every(e => !e.token), clients: [...new Set(e401.map(e => e.client))], inv: eval(RINV)(s.window(60)) };
+  }, RINV);
+  check(r.n > 0 && r.tokens, `401=${r.n} todos sin token=${r.tokens}`);
+  check(r.clients.length === 2, `clientes rechazados=${r.clients}`);
+  check(r.inv, 'invariante');
+});
+
 test('route: réplicas round robin', async page => {
   await open(page);
   const c = await engine(page, (svg, RULES) => {
@@ -337,6 +379,20 @@ test('escena: risks apagar y segunda instancia', async page => {
   check(r.n === 2 && r.up0 === false, `instancias=${r.n} up0=${r.up0}`);
   check(r.b === r.a, `econn con dos instancias: ${r.a} → ${r.b}`);
   check(r.pas && r.act1, `activo/pasivo: pasiva=${r.pas} toma el rol=${r.act1}`);
+});
+
+test('escena: gateway medidor por cliente', async page => {
+  await open(page);
+  const r = await evalScene(page, SL.gateway, sec => {
+    const sim = sec._scene.sim;
+    const b = sec.querySelector('input[data-feature=rateLimit]'); b.checked = true; b.dispatchEvent(new Event('change'));
+    sec.querySelector('[data-act=abuse]').click();
+    sim.fastForward(4);
+    const [web, movil] = sim.clients;
+    return { webOver: web.g.classList.contains('over'), movilOver: movil.g.classList.contains('over'), abuse: movil.g.classList.contains('abuse'), sub: movil.sub.textContent };
+  });
+  check(r.movilOver && r.abuse && !r.webOver, JSON.stringify(r));
+  check(/^\d+\/5 por seg$/.test(r.sub), `medidor=${r.sub}`);
 });
 
 test('escena: gateway 401 y 429', async page => {

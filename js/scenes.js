@@ -105,7 +105,7 @@
   /* ---------- 5. en la puerta: TLS, caché, compresión ---------- */
 
   S.edge = slide => {
-    const sim = rsetup(slide, { mode: 'proxy', seed: 5, mix: { '/usuarios': 1, '/ordenes': 1, '/pagos': 1, '/static': 2 } });
+    const sim = rsetup(slide, { mode: 'proxy', seed: 5, returns: true, scheme: true, mix: { '/usuarios': 1, '/ordenes': 1, '/pagos': 1, '/static': 2 } });
     toggles(slide, sim);
     return life(sim);
   };
@@ -143,7 +143,7 @@
   /* ---------- 8. API gateway: autenticación y límite por cliente ---------- */
 
   S.gateway = slide => {
-    const base = { mode: 'proxy', seed: 8, clients: [{ id: 'web', label: 'Navegador', icon: '💻', rate: 1 }, { id: 'movil', label: 'App móvil', icon: '📱', rate: 1 }], proxyLabel: 'API gateway' };
+    const base = { mode: 'proxy', seed: 8, clients: [{ id: 'web', label: 'Navegador', icon: '💻', rate: 1 }, { id: 'movil', label: 'App móvil', icon: '📱', rate: 1 }], proxyLabel: 'API gateway', returns: true, colorBy: 'client' };
     const sim = rsetup(slide, base);
     toggles(slide, sim, { rateLimit: { perClient: 5 } });
     const btn = slide.querySelector('[data-act=abuse]');

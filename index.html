@@ -130,7 +130,7 @@
   <div class="demo">
     <div class="stage">
       <svg class="sim"></svg>
-      <div class="legend"><span><i style="background:#60a5fa"></i>/usuarios</span><span><i style="background:#fb923c"></i>/ordenes</span><span><i style="background:#2dd4bf"></i>/pagos</span><span><i style="background:#e2e8f0"></i>/static</span><span><i style="background:#f472b6"></i>caché</span></div>
+      <div class="legend"><span><i style="background:#60a5fa"></i>/usuarios</span><span><i style="background:#fb923c"></i>/ordenes</span><span><i style="background:#2dd4bf"></i>/pagos</span><span><i style="background:#e2e8f0"></i>/static</span><span><i style="background:#f472b6"></i>caché</span><span><i style="background:#4ade80"></i>respuesta</span><span><i style="background:#64748b;box-shadow:0 0 0 2px #fff"></i>cifrado</span></div>
     </div>
     <div class="panel">
       <p class="lead">Como todo pasa por el proxy, hay tareas que conviene hacer <b>ahí</b> y no repetirlas en cada servicio.</p>
@@ -139,12 +139,14 @@
         <label><input type="checkbox" data-feature="cache"> 💾 <b>Caché</b>: los archivos estáticos se responden desde el proxy</label>
         <label><input type="checkbox" data-feature="compress"> 🗜 <b>Compresión</b>: gzip/brotli para todas las respuestas</label>
       </div>
-      <div class="rstats" data-fields="cached,ok,byService"></div>
+      <div class="rstats" data-fields="cached,ok,kbps,byService"></div>
     </div>
   </div>
   <aside class="notes">
     Prender la caché: los pedidos blancos (/static) se responden en rosa desde el proxy y la barra de Web deja de crecer. Es carga que el servicio no ve.
-    TLS y compresión no cambian el dibujo, pero son el mismo argumento: hacerlo una vez en la puerta, no en cada servicio.
+    Prender TLS: los links de los clientes se ponen verdes y los puntos de ese tramo llevan un anillo blanco (van cifrados). Del proxy a los servicios no hay anillo: el TLS termina en el proxy y adentro es HTTP. Antes de prenderlo, la etiqueta dice "texto plano".
+    Prender compresión: las respuestas que salen del proxy hacia los clientes se achican y baja el número de KB/s. Los servicios no se enteran.
+    Las tres son el mismo argumento: hacerlo una vez en la puerta, no en cada servicio.
     Pregunta para la clase: ¿qué otras cosas tendría sentido resolver en la puerta para todos los servicios?
   </aside>
 </section>
@@ -219,7 +221,7 @@
   <div class="demo">
     <div class="stage">
       <svg class="sim"></svg>
-      <div class="legend"><span><i style="background:#f87171"></i>401 sin token</span><span><i style="background:#f87171"></i>429 se pasó del límite</span></div>
+      <div class="legend"><span><i style="background:#7dd3fc"></i>Navegador</span><span><i style="background:#facc15"></i>App móvil</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px #cbd5e1"></i>sin token</span><span><i style="background:#4ade80"></i>respuesta</span><span><i style="background:#f87171"></i>401</span><span><i style="background:#fb923c"></i>429</span></div>
     </div>
     <div class="panel">
       <p class="lead"><b>Todo API gateway es un proxy reverso; no todo proxy reverso es un API gateway.</b> El gateway suma lo que importa cuando del otro lado hay <b>clientes de una API</b>.</p>
@@ -236,8 +238,9 @@
     </div>
   </div>
   <aside class="notes">
-    Prender la autenticación: los pedidos sin token rebotan con 401 sin llegar a ningún servicio.
-    Prender el límite y tocar "App móvil abusiva": solo ese cliente recibe 429; el navegador sigue normal. El límite es por cliente, no global.
+    Cada cliente tiene su color; los puntos huecos son pedidos sin token. Las respuestas vuelven en verde a quien pidió.
+    Prender la autenticación: los huecos rebotan en el gateway con 401 (rojo) y vuelven a su cliente, sin llegar a ningún servicio.
+    Prender el límite: cada cliente muestra cuántos pedidos hizo en el último segundo contra el límite (x/5). Tocar "App móvil abusiva": pasa a 10 por segundo, su caja se pone naranja y solo a ella le vuelven 429 (naranja); el navegador sigue normal. El límite es por cliente, no global.
     Mencionar agregación y BFF como funciones típicas de gateway que un proxy genérico no tiene.
     Pregunta para la clase: ¿dónde conviene validar el token, en cada servicio o una vez en la puerta? ¿Qué se gana y qué se pierde?
   </aside>

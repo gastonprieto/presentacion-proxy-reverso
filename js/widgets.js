@@ -174,7 +174,7 @@
 
   /* ---------- widgets que leen un RouteSim (js/route.js) ---------- */
 
-  const RLABELS = { sent: 'Pedidos', ok: 'Respondidos', e401: '401 sin token', e404: '404 sin regla', e429: '429 límite', e502: '502 del proxy', econn: 'Error de conexión', cached: 'Desde caché', p95: 'Latencia p95' };
+  const RLABELS = { sent: 'Pedidos', ok: 'Respondidos', e401: '401 sin token', e404: '404 sin regla', e429: '429 límite', e502: '502 del proxy', econn: 'Error de conexión', cached: 'Desde caché', kbps: 'KB/s a clientes', p95: 'Latencia p95' };
 
   // Contadores; 'byService' se dibuja como mini barras por servicio
   function rstats(el, sim, fields, win = 5) {
