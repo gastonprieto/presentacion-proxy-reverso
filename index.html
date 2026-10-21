@@ -34,6 +34,7 @@
     Bienvenida. Ya vimos el load balancer: está adelante y reparte pedidos entre copias iguales de un servidor.
     Hoy vemos una pieza que también está adelante, pero que decide a dónde va cada pedido según qué pide: el proxy reverso. Al final, el API gateway como caso particular.
     Pregunta para la clase: si una app tiene usuarios, órdenes y pagos como servicios separados, ¿cómo sabe el navegador a cuál pegarle?
+    Si vienen de la clase de microservicios: ahí la app web hacía de única dirección, pero con código por cada servicio. Hoy vemos cómo hacerlo con reglas.
   </aside>
 </section>
 
@@ -113,7 +114,7 @@
       </div>
       <div class="box"><div class="label">Reglas del proxy</div><div class="rules-table"></div></div>
       <ul class="points">
-        <li class="fragment">Partir un servicio en dos es <b>agregar una regla</b>: el cliente no cambió nada.</li>
+        <li class="fragment">Partir un servicio en dos es <b>agregar una regla</b>: el cliente no cambió nada, y adelante no hubo que escribir código ni deployar.</li>
         <li class="fragment">Los servicios <b>no quedan expuestos</b> a internet: solo el proxy.</li>
       </ul>
     </div>
@@ -121,6 +122,7 @@
   <aside class="notes">
     Al principio, /ordenes/envios lo atiende Órdenes (la regla /ordenes coincide por prefijo).
     Tocar "Separar Envíos": aparece un servicio nuevo y una regla más específica antes de /ordenes. Los pedidos verde lima van ahora a Envíos y los clientes siguen pegándole a tienda.com.
+    Si vienen de microservicios: con la app web, este mismo cambio era agregar una línea de código y deployarla. Acá es una fila en la tabla de reglas.
     Pregunta para la clase: sin proxy, ¿qué tendría que cambiar en la app móvil para hablar con un servicio nuevo?
   </aside>
 </section>
