@@ -1,0 +1,56 @@
+# Laboratorio de proxy reverso: nginx adelante de los servicios de tienda.com.
+# Sólo el proxy publica puertos; los servicios no son accesibles desde afuera.
+# Instrucciones en el README ("Laboratorio con Docker").
+name: lab-proxy-reverso
+
+x-servicio: &servicio
+  build: ./lab/servicio
+  image: lab-proxy-reverso-servicio
+  restart: unless-stopped
+
+services:
+  usuarios:
+    <<: *servicio
+    environment: { NOMBRE: Usuarios, PREFIJO: /usuarios }
+  ordenes:
+    <<: *servicio
+    environment: { NOMBRE: Órdenes, PREFIJO: /ordenes }
+    deploy: { replicas: 2 }   # docker compose up -d --scale ordenes=4
+  envios:
+    <<: *servicio
+    environment: { NOMBRE: Envíos, PREFIJO: /ordenes/envios }
+  pagos:
+    <<: *servicio
+    environment: { NOMBRE: Pagos, PREFIJO: /pagos }
+  pagos-v2:
+    <<: *servicio
+    environment: { NOMBRE: Pagos v2, PREFIJO: /pagos }
+  web:
+    <<: *servicio
+    environment: { NOMBRE: Web, PREFIJO: /static }
+
+  # Genera un certificado autofirmado para tienda.localhost (una vez, antes del proxy).
+  certs:
+    image: alpine/openssl
+    volumes: ["certs:/certs"]
+    command: >-
+      req -x509 -newkey rsa:2048 -nodes -days 365 -subj /CN=tienda.localhost
+      -keyout /certs/tienda.key -out /certs/tienda.crt
+
+  proxy:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    # La carpeta entera (no archivos sueltos) para que nginx vea las ediciones al recargar.
+    command: ["nginx", "-c", "/etc/nginx/lab/nginx.conf", "-g", "daemon off;"]
+    volumes:
+      - ./lab/nginx:/etc/nginx/lab:ro
+      - certs:/certs:ro
+    ports:
+      - "8080:80"     # proxy reverso por HTTP
+      - "8443:443"    # proxy reverso por HTTPS
+      - "8090:8090"   # API gateway
+    depends_on:
+      certs: { condition: service_completed_successfully }
+
+volumes:
+  certs:
