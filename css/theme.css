@@ -404,3 +404,23 @@ html.mobile .rule select { font-size: 16px; padding: 6px; }
 .repo-link:hover { opacity: 1; color: var(--text); }
 .repo-link svg { width: 34px; height: 34px; fill: currentColor; }
 html.mobile .repo-link { position: static; transform: none; display: flex; width: max-content; margin: 20px auto 0; }
+.title-slide .repo-link { position: static; transform: none; align-self: flex-start; margin-top: 28px; }
+html.mobile .title-slide .repo-link { margin: 24px 0 0; }
+
+/* Diapositiva final: QR a la presentación publicada, playground y repo */
+.repo-link.with-text { gap: 10px; align-items: center; font: 15px var(--mono); text-decoration: none; }
+html.mobile .repo-link.with-text { width: auto; max-width: 100%; font-size: 12px; overflow-wrap: anywhere; }
+.repo-link.with-text svg { width: 26px; height: 26px; }
+.outro-grid { display: grid; grid-template-columns: 300px 1fr; gap: 56px; align-items: center; margin-top: 28px; }
+.outro .qr { margin: 0; text-align: center; }
+.outro .qr img { width: 280px; height: 280px; display: block; background: #fff; border-radius: 16px; padding: 10px; box-sizing: border-box; }
+.outro .qr figcaption { margin-top: 12px; font: 14px/1.5 var(--mono); color: var(--muted); }
+.outro .cta h3 { font-size: 34px; margin: 0 0 14px; }
+.outro .cta p { font-size: 20px; line-height: 1.5; color: #cbd5e1; margin: 0 0 10px; }
+.outro .cta .btn { display: inline-block; margin-top: 14px; font-size: 18px; text-decoration: none; }
+.outro .cta .repo-link { position: static; transform: none; margin-top: 30px; }
+html.mobile .outro-grid { grid-template-columns: 1fr; gap: 28px; }
+html.mobile .outro .qr img { width: 220px; height: 220px; margin: 0 auto; }
+html.mobile .outro .cta h3 { font-size: 24px; }
+html.mobile .outro .cta p { font-size: 16px; }
+html.mobile .outro .cta .repo-link { margin: 24px 0 0; }
