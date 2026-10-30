@@ -424,3 +424,6 @@ html.mobile .outro .qr img { width: 220px; height: 220px; margin: 0 auto; }
 html.mobile .outro .cta h3 { font-size: 24px; }
 html.mobile .outro .cta p { font-size: 16px; }
 html.mobile .outro .cta .repo-link { margin: 24px 0 0; }
+.outro .cta p.lab { font-size: 17px; color: var(--muted); margin-top: 12px; }
+.outro .cta p.lab a { color: inherit; }
+html.mobile .outro .cta p.lab { font-size: 14px; }
